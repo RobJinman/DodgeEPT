@@ -1,10 +1,10 @@
 #include "QtApplication.hpp"
-#include "QtGameWindow.hpp"
+#include "QtMainWindow.hpp"
 
 
 int main(int argc, char** argv) {
    QtApplication app(argc, argv);  
-   QtGameWindow window;
+   QtMainWindow window;
    window.show();
 
    return app.exec();
