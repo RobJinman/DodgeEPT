@@ -1,10 +1,10 @@
-#include "QtApplication.hpp"
-#include "QtMainWindow.hpp"
+#include "Application.hpp"
+#include "MainWindow.hpp"
 
 
 int main(int argc, char** argv) {
-   QtApplication app(argc, argv);  
-   QtMainWindow window;
+   Application app(argc, argv);  
+   MainWindow window;
    window.show();
 
    return app.exec();

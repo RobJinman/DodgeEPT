@@ -1,15 +1,15 @@
 #include <stdexcept>
 #include <iostream>
-#include "QtApplication.hpp"
+#include "Application.hpp"
 
 
 using namespace std;
 
 
 //===========================================
-// QtApplication::QtApplication
+// Application::Application
 //===========================================
-bool QtApplication::notify(QObject* receiver, QEvent* event) {
+bool Application::notify(QObject* receiver, QEvent* event) {
    try {
       return QApplication::notify(receiver, event);
    } 

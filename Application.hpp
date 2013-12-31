@@ -1,13 +1,13 @@
-#ifndef __QT_APPLICATION_HPP__
-#define __QT_APPLICATION_HPP__
+#ifndef __APPLICATION_HPP__
+#define __APPLICATION_HPP__
 
 
 #include <QApplication>
 
 
-class QtApplication : public QApplication {
+class Application : public QApplication {
    public:
-      QtApplication(int argc, char** argv)
+      Application(int argc, char** argv)
          : QApplication(argc, argv) {}
 
       virtual bool notify(QObject* receiver, QEvent* event);
