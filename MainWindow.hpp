@@ -9,6 +9,10 @@
 class QAction;
 class QPushButton;
 class QTextEdit;
+class QTabWidget;
+class QGraphicsView;
+class QToolBox;
+class QMenu;
 class XmlTreeView;
 
 class MainWindow : public QMainWindow {
@@ -24,10 +28,24 @@ class MainWindow : public QMainWindow {
       void xmlTreeUpdated(const std::string& text);
 
    private:
+      QMenu*         m_mnuFile;
+      QAction*       m_actSave;
+      QAction*       m_actSaveAs;
+      QAction*       m_actExport;
+      QAction*       m_actQuit;
       QWidget*       m_wgtCentral;
-      QPushButton*   m_wgtButton;
-      XmlTreeView*   m_wgtXmlTree;
+      QTabWidget*    m_wgtLeftColumnTabs;
+      QWidget*       m_wgtToolsTab;
+      QToolBox*      m_wgtTools;
+      QTabWidget*    m_wgtCentralColumnTabs;
+      QWidget*       m_wgtXmlEditTab;
       QTextEdit*     m_wgtXmlEdit;
+      QPushButton*   m_wgtXmlApply;
+      QWidget*       m_wgtDrawScreenTab;
+      QGraphicsView* m_wgtDrawScreen;
+      QTabWidget*    m_wgtRightColumnTabs;
+      QWidget*       m_wgtXmlTreeTab;
+      XmlTreeView*   m_wgtXmlTree;
 };
 
 
