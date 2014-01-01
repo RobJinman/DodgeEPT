@@ -13,6 +13,9 @@ class QTabWidget;
 class QGraphicsView;
 class QToolBox;
 class QMenu;
+class QComboBox;
+class QGroupBox;
+class QLineEdit;
 class XmlTreeView;
 
 class MainWindow : public QMainWindow {
@@ -25,6 +28,8 @@ class MainWindow : public QMainWindow {
 
    private slots:
       void btnApplyClick();
+      void btnNewPrototypeClick();
+      void btnNewInstanceClick();
       void xmlTreeUpdated(const std::string& text);
 
    private:
@@ -46,6 +51,15 @@ class MainWindow : public QMainWindow {
       QTabWidget*    m_wgtRightColumnTabs;
       QWidget*       m_wgtXmlTreeTab;
       XmlTreeView*   m_wgtXmlTree;
+      QWidget*       m_wgtObjectsTab;
+      QGroupBox*     m_wgtGrpPrototypes;
+      QComboBox*     m_wgtCboPrototypes;
+      QLineEdit*     m_wgtTxtNewPrototype;
+      QPushButton*   m_wgtBtnNewPrototype;
+      QGroupBox*     m_wgtGrpInstances;
+      QComboBox*     m_wgtCboInstances;
+      QLineEdit*     m_wgtTxtNewInstance;
+      QPushButton*   m_wgtBtnNewInstance;
 };
 
 

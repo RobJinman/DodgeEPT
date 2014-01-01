@@ -4,8 +4,12 @@
 #include <QAction>
 #include <QMenuBar>
 #include <QTextEdit>
+#include <QLineEdit>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QGridLayout>
+#include <QComboBox>
 #include <QTabWidget>
 #include <QGraphicsView>
 #include <QToolBox>
@@ -51,6 +55,16 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtRightColumnTabs = new QTabWidget(m_wgtCentral);
    m_wgtXmlTreeTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtXmlTree = new XmlTreeView(m_wgtXmlTreeTab);
+   m_wgtObjectsTab = new QWidget(m_wgtRightColumnTabs);
+   m_wgtGrpPrototypes = new QGroupBox("Prototypes", m_wgtObjectsTab);
+   m_wgtCboPrototypes = new QComboBox(m_wgtGrpPrototypes);
+   m_wgtTxtNewPrototype = new QLineEdit(m_wgtGrpPrototypes);
+   m_wgtBtnNewPrototype = new QPushButton("Add", m_wgtGrpPrototypes);
+   m_wgtGrpInstances = new QGroupBox("Instances", m_wgtObjectsTab);
+   m_wgtCboInstances = new QComboBox(m_wgtGrpInstances);
+   m_wgtTxtNewInstance = new QLineEdit(m_wgtGrpInstances);
+   m_wgtBtnNewInstance = new QPushButton("Add", m_wgtGrpInstances);
+
 
    QFont font;
    font.setFamily("Courier");
@@ -63,6 +77,7 @@ MainWindow::MainWindow(QWidget* parent)
    const int tabStop = 2;
    QFontMetrics metrics(font);
    m_wgtXmlEdit->setTabStopWidth(tabStop * metrics.width(' '));
+
 
 
    // LEFT COLUMN
@@ -87,11 +102,29 @@ MainWindow::MainWindow(QWidget* parent)
 
    // RIGHT COLUMN
 
-   m_wgtRightColumnTabs->addTab(m_wgtXmlTreeTab, "Object Properties");
+   m_wgtRightColumnTabs->addTab(m_wgtXmlTreeTab, "Properties");
+   m_wgtRightColumnTabs->addTab(m_wgtObjectsTab, "Objects");
 
    QVBoxLayout* xmlTreeTabLayout = new QVBoxLayout;
    xmlTreeTabLayout->addWidget(m_wgtXmlTree);
    m_wgtXmlTreeTab->setLayout(xmlTreeTabLayout);
+
+   QVBoxLayout* objectsTabLayout = new QVBoxLayout;
+   objectsTabLayout->addWidget(m_wgtGrpPrototypes);
+   objectsTabLayout->addWidget(m_wgtGrpInstances);
+   m_wgtObjectsTab->setLayout(objectsTabLayout);
+
+   QGridLayout* newPrototypeLayout = new QGridLayout;
+   newPrototypeLayout->addWidget(m_wgtCboPrototypes, 0, 0, 1, 2);
+   newPrototypeLayout->addWidget(m_wgtTxtNewPrototype, 1, 1);
+   newPrototypeLayout->addWidget(m_wgtBtnNewPrototype, 1, 2);
+   m_wgtGrpPrototypes->setLayout(newPrototypeLayout);
+
+   QGridLayout* newInstanceLayout = new QGridLayout;
+   newInstanceLayout->addWidget(m_wgtCboInstances, 0, 0, 1, 2);
+   newInstanceLayout->addWidget(m_wgtTxtNewInstance, 1, 1);
+   newInstanceLayout->addWidget(m_wgtBtnNewInstance, 1, 2);
+   m_wgtGrpInstances->setLayout(newInstanceLayout);
 
 
    QHBoxLayout* mainLayout = new QHBoxLayout;
@@ -105,6 +138,8 @@ MainWindow::MainWindow(QWidget* parent)
 
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
    connect(m_wgtXmlApply, SIGNAL(released()), this, SLOT(btnApplyClick()));
+   connect(m_wgtBtnNewPrototype, SIGNAL(released()), this, SLOT(btnNewPrototypeClick()));
+   connect(m_wgtBtnNewInstance, SIGNAL(released()), this, SLOT(btnNewInstanceClick()));
    connect(m_wgtXmlTree, SIGNAL(onUpdate(const std::string&)), this, SLOT(xmlTreeUpdated(const std::string&)));
 }
 
@@ -113,6 +148,30 @@ MainWindow::MainWindow(QWidget* parent)
 //===========================================
 void MainWindow::xmlTreeUpdated(const std::string& text) {
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+}
+
+//===========================================
+// MainWindow::btnNewPrototypeClick
+//===========================================
+void MainWindow::btnNewPrototypeClick() {
+   QString str = m_wgtTxtNewPrototype->text();
+   m_wgtCboPrototypes->addItem(str);
+
+   m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
+
+   m_wgtTxtNewPrototype->clear();
+}
+
+//===========================================
+// MainWindow::btnNewInstanceClick
+//===========================================
+void MainWindow::btnNewInstanceClick() {
+   QString str = m_wgtTxtNewInstance->text();
+   m_wgtCboInstances->addItem(str);
+
+   m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
+
+   m_wgtTxtNewInstance->clear();
 }
 
 //===========================================
@@ -139,5 +198,11 @@ void MainWindow::btnApplyClick() {
 // MainWindow::~MainWindow
 //===========================================
 MainWindow::~MainWindow() {
+   delete m_mnuFile;
+   delete m_actSave;
+   delete m_actSaveAs;
+   delete m_actExport;
+   delete m_actQuit;
+
    delete m_wgtCentral;
 }
