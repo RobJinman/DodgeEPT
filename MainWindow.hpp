@@ -3,7 +3,8 @@
 
 
 #include <QMainWindow>
-#include <string>
+#include <map>
+#include "EptObject.hpp"
 
 
 class QAction;
@@ -16,7 +17,11 @@ class QMenu;
 class QComboBox;
 class QGroupBox;
 class QLineEdit;
-class XmlTreeView;
+class QLabel;
+class QSpinBox;
+class QDoubleSpinBox;
+class WgtXmlTreeView;
+class WgtMapSettings;
 
 class MainWindow : public QMainWindow {
    Q_OBJECT
@@ -30,36 +35,46 @@ class MainWindow : public QMainWindow {
       void btnApplyClick();
       void btnNewPrototypeClick();
       void btnNewInstanceClick();
-      void xmlTreeUpdated(const std::string& text);
+      void xmlTreeUpdated();
+      void onPrototypeSelection(const QString& name);
+      void onInstanceSelection(const QString& name);
+      void onExport();
 
    private:
-      QMenu*         m_mnuFile;
-      QAction*       m_actSave;
-      QAction*       m_actSaveAs;
-      QAction*       m_actExport;
-      QAction*       m_actQuit;
-      QWidget*       m_wgtCentral;
-      QTabWidget*    m_wgtLeftColumnTabs;
-      QWidget*       m_wgtToolsTab;
-      QToolBox*      m_wgtTools;
-      QTabWidget*    m_wgtCentralColumnTabs;
-      QWidget*       m_wgtXmlEditTab;
-      QTextEdit*     m_wgtXmlEdit;
-      QPushButton*   m_wgtXmlApply;
-      QWidget*       m_wgtDrawScreenTab;
-      QGraphicsView* m_wgtDrawScreen;
-      QTabWidget*    m_wgtRightColumnTabs;
-      QWidget*       m_wgtXmlTreeTab;
-      XmlTreeView*   m_wgtXmlTree;
-      QWidget*       m_wgtObjectsTab;
-      QGroupBox*     m_wgtGrpPrototypes;
-      QComboBox*     m_wgtCboPrototypes;
-      QLineEdit*     m_wgtTxtNewPrototype;
-      QPushButton*   m_wgtBtnNewPrototype;
-      QGroupBox*     m_wgtGrpInstances;
-      QComboBox*     m_wgtCboInstances;
-      QLineEdit*     m_wgtTxtNewInstance;
-      QPushButton*   m_wgtBtnNewInstance;
+      std::map<QString, std::unique_ptr<EptObject> > m_objects;
+
+      std::string          m_root;
+      EptObject*           m_current;
+
+      QMenu*               m_mnuFile;
+      QAction*             m_actSave;
+      QAction*             m_actSaveAs;
+      QAction*             m_actExport;
+      QAction*             m_actQuit;
+      QWidget*             m_wgtCentral;
+      QTabWidget*          m_wgtLeftColumnTabs;
+      QWidget*             m_wgtToolsTab;
+      QToolBox*            m_wgtTools;
+      QTabWidget*          m_wgtCentralColumnTabs;
+      QWidget*             m_wgtXmlEditTab;
+      QTextEdit*           m_wgtXmlEdit;
+      QPushButton*         m_wgtXmlApply;
+      QWidget*             m_wgtDrawScreenTab;
+      QGraphicsView*       m_wgtDrawScreen;
+      QTabWidget*          m_wgtRightColumnTabs;
+      QWidget*             m_wgtXmlTreeTab;
+      WgtXmlTreeView*      m_wgtXmlTree;
+      QWidget*             m_wgtObjectsTab;
+      QGroupBox*           m_wgtGrpPrototypes;
+      QComboBox*           m_wgtCboPrototypes;
+      QLineEdit*           m_wgtTxtNewPrototype;
+      QPushButton*         m_wgtBtnNewPrototype;
+      QGroupBox*           m_wgtGrpInstances;
+      QComboBox*           m_wgtCboInstances;
+      QLineEdit*           m_wgtTxtNewInstance;
+      QPushButton*         m_wgtBtnNewInstance;
+      WgtMapSettings*      m_wgtMapSettingsTab;
+
 };
 
 

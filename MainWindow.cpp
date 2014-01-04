@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <QApplication>
 #include <QPushButton>
 #include <QAction>
@@ -13,9 +14,13 @@
 #include <QTabWidget>
 #include <QGraphicsView>
 #include <QToolBox>
-#include <dodge/xml/xml.hpp>
+#include <QLabel>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
 #include "MainWindow.hpp"
-#include "XmlTreeView.hpp"
+#include "WgtXmlTreeView.hpp"
+#include "WgtMapSettings.hpp"
+#include "Common.hpp"
 
 
 using namespace std;
@@ -27,6 +32,9 @@ using namespace Dodge;
 //===========================================
 MainWindow::MainWindow(QWidget* parent)
    : QMainWindow(parent) {
+
+   m_root = ".";
+   m_current = NULL;
 
    resize(600, 400);
    setWindowTitle("Dodge :: Entity Placement Tool");
@@ -54,7 +62,7 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtXmlApply = new QPushButton("Apply", m_wgtXmlEditTab);
    m_wgtRightColumnTabs = new QTabWidget(m_wgtCentral);
    m_wgtXmlTreeTab = new QWidget(m_wgtRightColumnTabs);
-   m_wgtXmlTree = new XmlTreeView(m_wgtXmlTreeTab);
+   m_wgtXmlTree = new WgtXmlTreeView(m_wgtXmlTreeTab);
    m_wgtObjectsTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtGrpPrototypes = new QGroupBox("Prototypes", m_wgtObjectsTab);
    m_wgtCboPrototypes = new QComboBox(m_wgtGrpPrototypes);
@@ -64,7 +72,36 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtCboInstances = new QComboBox(m_wgtGrpInstances);
    m_wgtTxtNewInstance = new QLineEdit(m_wgtGrpInstances);
    m_wgtBtnNewInstance = new QPushButton("Add", m_wgtGrpInstances);
+   m_wgtMapSettingsTab = new WgtMapSettings(m_wgtRightColumnTabs);
 
+
+   // LEFT COLUMN
+
+   m_wgtLeftColumnTabs->addTab(m_wgtToolsTab, "Tools");
+
+
+   // CENTRAL COLUMN
+
+   m_wgtCentralColumnTabs->addTab(m_wgtDrawScreenTab, "Viewer");
+   m_wgtCentralColumnTabs->addTab(m_wgtXmlEditTab, "XML Code");
+
+   QVBoxLayout* drawScreenTabLayout = new QVBoxLayout;
+   drawScreenTabLayout->addWidget(m_wgtDrawScreen);
+   m_wgtDrawScreenTab->setLayout(drawScreenTabLayout);
+
+   QVBoxLayout* xmlEditTabLayout = new QVBoxLayout;
+   xmlEditTabLayout->addWidget(m_wgtXmlEdit);
+   xmlEditTabLayout->addWidget(m_wgtXmlApply);
+   m_wgtXmlEditTab->setLayout(xmlEditTabLayout);
+
+   m_wgtXmlApply->setDisabled(true);
+
+
+   // RIGHT COLUMN
+
+   m_wgtRightColumnTabs->addTab(m_wgtXmlTreeTab, "Properties");
+   m_wgtRightColumnTabs->addTab(m_wgtObjectsTab, "Objects");
+   m_wgtRightColumnTabs->addTab(m_wgtMapSettingsTab, "Map Settings");
 
    QFont font;
    font.setFamily("Courier");
@@ -77,33 +114,6 @@ MainWindow::MainWindow(QWidget* parent)
    const int tabStop = 2;
    QFontMetrics metrics(font);
    m_wgtXmlEdit->setTabStopWidth(tabStop * metrics.width(' '));
-
-
-
-   // LEFT COLUMN
-
-   m_wgtLeftColumnTabs->addTab(m_wgtToolsTab, "Tools");
-
-
-   // CENTRAL COLUMN
-
-   m_wgtCentralColumnTabs->addTab(m_wgtDrawScreenTab, "Draw Screen");
-   m_wgtCentralColumnTabs->addTab(m_wgtXmlEditTab, "XML Code");
-
-   QVBoxLayout* drawScreenTabLayout = new QVBoxLayout;
-   drawScreenTabLayout->addWidget(m_wgtDrawScreen);
-   m_wgtDrawScreenTab->setLayout(drawScreenTabLayout);
-
-   QVBoxLayout* xmlEditTabLayout = new QVBoxLayout;
-   xmlEditTabLayout->addWidget(m_wgtXmlEdit);
-   xmlEditTabLayout->addWidget(m_wgtXmlApply);
-   m_wgtXmlEditTab->setLayout(xmlEditTabLayout);
-
-
-   // RIGHT COLUMN
-
-   m_wgtRightColumnTabs->addTab(m_wgtXmlTreeTab, "Properties");
-   m_wgtRightColumnTabs->addTab(m_wgtObjectsTab, "Objects");
 
    QVBoxLayout* xmlTreeTabLayout = new QVBoxLayout;
    xmlTreeTabLayout->addWidget(m_wgtXmlTree);
@@ -137,16 +147,77 @@ MainWindow::MainWindow(QWidget* parent)
    mainLayout->addWidget(m_wgtRightColumnTabs, 3);
 
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
+   connect(m_actExport, SIGNAL(triggered()), this, SLOT(onExport()));
    connect(m_wgtXmlApply, SIGNAL(released()), this, SLOT(btnApplyClick()));
    connect(m_wgtBtnNewPrototype, SIGNAL(released()), this, SLOT(btnNewPrototypeClick()));
    connect(m_wgtBtnNewInstance, SIGNAL(released()), this, SLOT(btnNewInstanceClick()));
-   connect(m_wgtXmlTree, SIGNAL(onUpdate(const std::string&)), this, SLOT(xmlTreeUpdated(const std::string&)));
+   connect(m_wgtXmlTree, SIGNAL(onUpdate()), this, SLOT(xmlTreeUpdated()));
+   connect(m_wgtCboPrototypes, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onPrototypeSelection(const QString&)));
+   connect(m_wgtCboInstances, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onInstanceSelection(const QString&)));
+}
+
+//===========================================
+// MainWindow::onExport
+//===========================================
+void MainWindow::onExport() {
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+   XmlDocument xml = settings.toXml();
+
+   string path = m_root + "/" + settings.filePath;
+
+   ofstream fout(path);
+   if (!fout.good()) {
+      fout.close();
+      EXCEPTION("Error opening file '" << path << "'");
+   }
+
+   xml.print(fout);
+
+   fout.close();
+}
+
+//===========================================
+// MainWindow::onPrototypeSelection
+//===========================================
+void MainWindow::onPrototypeSelection(const QString& name) {
+   m_wgtXmlApply->setDisabled(false);
+
+   auto i = m_objects.find(name);
+   assert(i != m_objects.end());
+
+   m_current = i->second.get();
+
+   auto p = m_current->xml().lock();
+   string text;
+   p->print(text);
+
+   m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+}
+
+//===========================================
+// MainWindow::onInstanceSelection
+//===========================================
+void MainWindow::onInstanceSelection(const QString& name) {
+   m_wgtXmlApply->setDisabled(false);
+
+   auto i = m_objects.find(name);
+   assert(i != m_objects.end());
+
+   m_current = i->second.get();
+
+   string text;
+   m_current->xml().lock()->print(text);
+
+   m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
 
 //===========================================
 // MainWindow::xmlTreeUpdated
 //===========================================
-void MainWindow::xmlTreeUpdated(const std::string& text) {
+void MainWindow::xmlTreeUpdated() {
+   string text;
+   m_current->xml().lock()->print(text);
+
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
 
@@ -155,11 +226,22 @@ void MainWindow::xmlTreeUpdated(const std::string& text) {
 //===========================================
 void MainWindow::btnNewPrototypeClick() {
    QString str = m_wgtTxtNewPrototype->text();
-   m_wgtCboPrototypes->addItem(str);
 
-   m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
+   auto i = m_objects.find(str);
+   if (i != m_objects.end()) {
+      // TODO
+   }
+   else {
+      m_wgtTxtNewPrototype->clear();
 
-   m_wgtTxtNewPrototype->clear();
+      EptObject* ent = new EptObject(str, EptObject::PROTOTYPE);
+
+      m_objects[str] = unique_ptr<EptObject>(ent);
+      m_current = ent;
+
+      m_wgtCboPrototypes->addItem(str);
+      m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
+   }
 }
 
 //===========================================
@@ -167,11 +249,22 @@ void MainWindow::btnNewPrototypeClick() {
 //===========================================
 void MainWindow::btnNewInstanceClick() {
    QString str = m_wgtTxtNewInstance->text();
-   m_wgtCboInstances->addItem(str);
 
-   m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
+   auto i = m_objects.find(str);
+   if (i != m_objects.end()) {
+      // TODO
+   }
+   else {
+      m_wgtTxtNewInstance->clear();
 
-   m_wgtTxtNewInstance->clear();
+      EptObject* ent = new EptObject(str, EptObject::INSTANCE);
+
+      m_objects[str] = unique_ptr<EptObject>(ent);
+      m_current = ent;
+
+      m_wgtCboInstances->addItem(str);
+      m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
+   }
 }
 
 //===========================================
@@ -184,10 +277,14 @@ void MainWindow::btnApplyClick() {
    int len = bytes.length();
 
    try {
-      XmlDocument* doc = new XmlDocument;
-      doc->parse(data, len);
+      weak_ptr<XmlDocument> doc = m_current->xml();
+      auto p = doc.lock();
 
-      m_wgtXmlTree->update(unique_ptr<XmlDocument>(doc));
+      if (p) {
+         p->parse(data, len);
+
+         m_wgtXmlTree->update(doc);
+      }
    }
    catch (XmlException& e) {
       cout << e.what() << "\n";

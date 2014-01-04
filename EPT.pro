@@ -6,10 +6,10 @@ TEMPLATE = app
 TARGET = ept
 DEPENDPATH += .
 INCLUDEPATH += . ../Dodge/include
-QMAKE_CXXFLAGS = -std=c++0x -DDEBUG -g
+QMAKE_CXXFLAGS = -std=c++0x -DDEBUG -g -DGLEW
 QMAKE_LIBDIR = ../Dodge/lib
-LIBS += -lDodge
+LIBS += -lDodge -lX11 -lGL -lGLEW
 
 # Input
-HEADERS += Application.hpp MainWindow.hpp XmlTreeView.hpp
-SOURCES += Application.cpp main.cpp MainWindow.cpp XmlTreeView.cpp
+HEADERS += Application.hpp EptObject.hpp MainWindow.hpp WgtMapSettings.hpp WgtXmlTreeView.hpp
+SOURCES += Application.cpp EptObject.cpp main.cpp MainWindow.cpp WgtMapSettings.cpp WgtXmlTreeView.cpp

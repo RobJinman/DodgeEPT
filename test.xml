@@ -1,0 +1,20 @@
+<settings>
+	<boundary>
+		<Range>
+			<pos>
+				<Vec2f x="0.5" y="0.6"/>
+			</pos>
+			<size>
+				<Vec2f x="0.7" y="0.8"/>
+			</size>
+		</Range>
+	</boundary>
+	<numSegments>
+		<Vec2i x="9" y="10"/>
+	</numSegments>
+	<segmentSize>
+		<Vec2f x="1.1" y="1.2"/>
+	</segmentSize>
+	<segmentsDir>data/xml/0</segmentsDir>
+</settings>
+

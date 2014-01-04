@@ -1,5 +1,5 @@
 #include <QVBoxLayout>
-#include "XmlTreeView.hpp"
+#include "WgtXmlTreeView.hpp"
 
 
 using namespace std;
@@ -7,9 +7,9 @@ using namespace Dodge;
 
 
 //===========================================
-// XmlTreeView::XmlTreeView
+// WgtXmlTreeView::WgtXmlTreeView
 //===========================================
-XmlTreeView::XmlTreeView(QWidget* parent)
+WgtXmlTreeView::WgtXmlTreeView(QWidget* parent)
    : QWidget(parent),
      m_wgtTree(NULL),
      m_populating(false) {
@@ -24,9 +24,9 @@ XmlTreeView::XmlTreeView(QWidget* parent)
 }
 
 //===========================================
-// XmlTreeView::itemEdited
+// WgtXmlTreeView::itemEdited
 //===========================================
-void XmlTreeView::itemEdited(QTreeWidgetItem* item, int column) {
+void WgtXmlTreeView::itemEdited(QTreeWidgetItem* item, int column) {
    if (m_populating) return;
 
    XmlTreeItem* i = static_cast<XmlTreeItem*>(item);
@@ -44,31 +44,31 @@ void XmlTreeView::itemEdited(QTreeWidgetItem* item, int column) {
       attr.setValue(val);
    }
 
-   if (m_document) {
-      const string& str = m_document->getData();
-      emit onUpdate(str);
-   }
+   emit onUpdate();
 }
 
 //===========================================
-// XmlTreeView::update
+// WgtXmlTreeView::update
 //===========================================
-void XmlTreeView::update(unique_ptr<XmlDocument> doc) {
+void WgtXmlTreeView::update(weak_ptr<XmlDocument> doc) {
    m_wgtTree->clear();
 
-   m_document = std::move(doc);
+   m_document = doc;
 
    populateXmlTree();
    m_wgtTree->setColumnWidth(0, 200);
 }
 
 //===========================================
-// XmlTreeView::populateXmlTree
+// WgtXmlTreeView::populateXmlTree
 //===========================================
-void XmlTreeView::populateXmlTree() {
+void WgtXmlTreeView::populateXmlTree() {
+   auto doc = m_document.lock();
+   if (!doc) return;
+
    m_populating = true;
 
-   XmlNode node = m_document->firstNode();
+   XmlNode node = doc->firstNode();
 
    QTreeWidgetItem* item = new XmlTreeItem(m_wgtTree, QStringList(QString(node.name().data())), xmlThing_t(node));
 
@@ -98,9 +98,9 @@ void XmlTreeView::populateXmlTree() {
 }
 
 //===========================================
-// XmlTreeView::populateXmlTree_r
+// WgtXmlTreeView::populateXmlTree_r
 //===========================================
-void XmlTreeView::populateXmlTree_r(QTreeWidgetItem* parent, const XmlNode& node) {
+void WgtXmlTreeView::populateXmlTree_r(QTreeWidgetItem* parent, const XmlNode& node) {
    XmlNode ch = node.firstChild();
 
    while (!ch.isNull()) {

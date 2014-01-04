@@ -1,5 +1,5 @@
-#ifndef __XML_TREE_VIEW_HPP__
-#define __XML_TREE_VIEW_HPP__
+#ifndef __WGT_XML_TREE_VIEW_HPP__
+#define __WGT_XML_TREE_VIEW_HPP__
 
 
 #include <dodge/xml/xml.hpp>
@@ -73,27 +73,27 @@ class XmlTreeItem : public QTreeWidgetItem {
 };
 
 
-class XmlTreeView : public QWidget {
+class WgtXmlTreeView : public QWidget {
    Q_OBJECT
 
    public:
-      XmlTreeView(QWidget* parent = 0);
+      WgtXmlTreeView(QWidget* parent = 0);
 
-      void update(std::unique_ptr<Dodge::XmlDocument> doc);
+      void update(std::weak_ptr<Dodge::XmlDocument> doc);
 
-      virtual ~XmlTreeView() {}
+      virtual ~WgtXmlTreeView() {}
 
    private slots:
       void itemEdited(QTreeWidgetItem* item, int column);
 
    signals:
-      void onUpdate(const std::string& text);
+      void onUpdate();
 
    private:
       void populateXmlTree();
       void populateXmlTree_r(QTreeWidgetItem* parent, const Dodge::XmlNode& node);
 
-      std::unique_ptr<Dodge::XmlDocument> m_document;
+      std::weak_ptr<Dodge::XmlDocument> m_document;
       QTreeWidget* m_wgtTree;
       bool m_populating;
 };
