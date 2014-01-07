@@ -18,6 +18,7 @@ class EptObject {
       EptObject(const QString& name, type_t type);
 
       inline const Dodge::Vec2i& segment() const;
+      inline long id() const;
       inline const QString& name() const;
       inline type_t type() const;
       inline std::weak_ptr<Dodge::XmlDocument> xml() const;
@@ -34,6 +35,10 @@ class EptObject {
 
       static long m_nextId;
 };
+
+inline long EptObject::id() const {
+   return m_id;
+}
 
 inline const QString& EptObject::name() const {
    return m_name;

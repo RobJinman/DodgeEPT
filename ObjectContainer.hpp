@@ -48,6 +48,8 @@ class ObjectContainer {
 
       void move(const QString& name, int i, int j);
 
+      void changeType(const QString& name, EptObject::type_t type);
+
       iterator begin();
       iterator end();
 

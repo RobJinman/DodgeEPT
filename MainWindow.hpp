@@ -20,6 +20,9 @@ class QLineEdit;
 class QLabel;
 class QSpinBox;
 class QDoubleSpinBox;
+class QListWidget;
+class QListWidgetItem;
+class QCheckBox;
 class WgtXmlTreeView;
 class WgtMapSettings;
 
@@ -34,12 +37,12 @@ class MainWindow : public QMainWindow {
 
    private slots:
       void btnApplyClick();
-      void btnNewPrototypeClick();
-      void btnNewInstanceClick();
+      void btnNewAssetClick();
       void xmlTreeUpdated();
       void onPrototypeSelection(const QString& name);
-      void onInstanceSelection(const QString& name);
+      void onAssetSelection(QListWidgetItem* item);
       void onExport();
+      void onChkPrototypeChanged(int state);
 
    private:
       void exportMapSettings();
@@ -60,6 +63,7 @@ class MainWindow : public QMainWindow {
       QTabWidget*                m_wgtLeftColumnTabs;
       QWidget*                   m_wgtToolsTab;
       QToolBox*                  m_wgtTools;
+      QComboBox*                 m_wgtCboPrototypes;
       QTabWidget*                m_wgtCentralColumnTabs;
       QWidget*                   m_wgtXmlEditTab;
       QTextEdit*                 m_wgtXmlEdit;
@@ -69,15 +73,13 @@ class MainWindow : public QMainWindow {
       QTabWidget*                m_wgtRightColumnTabs;
       QWidget*                   m_wgtXmlTreeTab;
       WgtXmlTreeView*            m_wgtXmlTree;
+      QCheckBox*                 m_wgtChkPrototype;
       QWidget*                   m_wgtObjectsTab;
-      QGroupBox*                 m_wgtGrpPrototypes;
-      QComboBox*                 m_wgtCboPrototypes;
-      QLineEdit*                 m_wgtTxtNewPrototype;
-      QPushButton*               m_wgtBtnNewPrototype;
-      QGroupBox*                 m_wgtGrpInstances;
-      QComboBox*                 m_wgtCboInstances;
-      QLineEdit*                 m_wgtTxtNewInstance;
-      QPushButton*               m_wgtBtnNewInstance;
+      QListWidget*               m_wgtLstAssets;
+      QGroupBox*                 m_wgtGrpAssets;
+      QLineEdit*                 m_wgtTxtNewAsset;
+      QPushButton*               m_wgtBtnNewAsset;
+      QCheckBox*                 m_wgtChkNewIsPrototype;
       WgtMapSettings*            m_wgtMapSettingsTab;
 
 };

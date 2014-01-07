@@ -79,6 +79,30 @@ void ObjectContainer::move(const QString& name, int i, int j) {
 }
 
 //===========================================
+// ObjectContainer::changeType
+//===========================================
+void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
+   auto i = m_byName.find(name);
+   if (i == m_byName.end())
+      EXCEPTION("No object with name '" << name.toLocal8Bit().data() << "'");
+
+   auto ptr = i->second.lock();
+
+   ptr->m_type = type;
+
+   if (type == EptObject::PROTOTYPE) {
+      m_instances.erase(ptr);
+   }
+   else if (type == EptObject::INSTANCE) {
+      m_prototypes.erase(ptr);
+   }
+   else
+      assert(false);
+
+   insert(ptr);
+}
+
+//===========================================
 // ObjectContainer::resize
 //
 // Ignores requests to down-size

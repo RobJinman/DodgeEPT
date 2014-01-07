@@ -69,6 +69,7 @@ void WgtXmlTreeView::populateXmlTree() {
    m_populating = true;
 
    XmlNode node = doc->firstNode();
+   if (node.isNull()) return;
 
    QTreeWidgetItem* item = new XmlTreeItem(m_wgtTree, QStringList(QString(node.name().data())), xmlThing_t(node));
 

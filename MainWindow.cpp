@@ -17,6 +17,8 @@
 #include <QLabel>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
+#include <QListWidget>
+#include <QCheckBox>
 #include "MainWindow.hpp"
 #include "WgtXmlTreeView.hpp"
 #include "WgtMapSettings.hpp"
@@ -53,6 +55,7 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtLeftColumnTabs = new QTabWidget(m_wgtCentral);
    m_wgtToolsTab = new QWidget(m_wgtLeftColumnTabs);
    m_wgtTools = new QToolBox(m_wgtToolsTab);
+   m_wgtCboPrototypes = new QComboBox(m_wgtToolsTab);
    m_wgtCentralColumnTabs = new QTabWidget(m_wgtCentral);
    m_wgtDrawScreenTab = new QTabWidget(m_wgtCentralColumnTabs);
    m_wgtDrawScreen = new QGraphicsView(m_wgtDrawScreenTab);
@@ -62,21 +65,23 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtRightColumnTabs = new QTabWidget(m_wgtCentral);
    m_wgtXmlTreeTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtXmlTree = new WgtXmlTreeView(m_wgtXmlTreeTab);
+   m_wgtChkPrototype = new QCheckBox("prototype", m_wgtXmlTreeTab);
    m_wgtObjectsTab = new QWidget(m_wgtRightColumnTabs);
-   m_wgtGrpPrototypes = new QGroupBox("Prototypes", m_wgtObjectsTab);
-   m_wgtCboPrototypes = new QComboBox(m_wgtGrpPrototypes);
-   m_wgtTxtNewPrototype = new QLineEdit(m_wgtGrpPrototypes);
-   m_wgtBtnNewPrototype = new QPushButton("Add", m_wgtGrpPrototypes);
-   m_wgtGrpInstances = new QGroupBox("Instances", m_wgtObjectsTab);
-   m_wgtCboInstances = new QComboBox(m_wgtGrpInstances);
-   m_wgtTxtNewInstance = new QLineEdit(m_wgtGrpInstances);
-   m_wgtBtnNewInstance = new QPushButton("Add", m_wgtGrpInstances);
+   m_wgtLstAssets = new QListWidget(m_wgtObjectsTab);
+   m_wgtGrpAssets = new QGroupBox("New", m_wgtObjectsTab);
+   m_wgtTxtNewAsset = new QLineEdit(m_wgtGrpAssets);
+   m_wgtChkNewIsPrototype = new QCheckBox("prototype", m_wgtGrpAssets);
+   m_wgtBtnNewAsset = new QPushButton("Add", m_wgtGrpAssets);
    m_wgtMapSettingsTab = new WgtMapSettings(m_wgtRightColumnTabs);
 
 
    // LEFT COLUMN
 
    m_wgtLeftColumnTabs->addTab(m_wgtToolsTab, "Tools");
+
+   QVBoxLayout* toolsTabLayout = new QVBoxLayout;
+   toolsTabLayout->addWidget(m_wgtCboPrototypes);
+   m_wgtToolsTab->setLayout(toolsTabLayout);
 
 
    // CENTRAL COLUMN
@@ -116,24 +121,19 @@ MainWindow::MainWindow(QWidget* parent)
 
    QVBoxLayout* xmlTreeTabLayout = new QVBoxLayout;
    xmlTreeTabLayout->addWidget(m_wgtXmlTree);
+   xmlTreeTabLayout->addWidget(m_wgtChkPrototype);
    m_wgtXmlTreeTab->setLayout(xmlTreeTabLayout);
 
    QVBoxLayout* objectsTabLayout = new QVBoxLayout;
-   objectsTabLayout->addWidget(m_wgtGrpPrototypes);
-   objectsTabLayout->addWidget(m_wgtGrpInstances);
+   objectsTabLayout->addWidget(m_wgtLstAssets);
+   objectsTabLayout->addWidget(m_wgtGrpAssets);
    m_wgtObjectsTab->setLayout(objectsTabLayout);
 
-   QGridLayout* newPrototypeLayout = new QGridLayout;
-   newPrototypeLayout->addWidget(m_wgtCboPrototypes, 0, 0, 1, 2);
-   newPrototypeLayout->addWidget(m_wgtTxtNewPrototype, 1, 1);
-   newPrototypeLayout->addWidget(m_wgtBtnNewPrototype, 1, 2);
-   m_wgtGrpPrototypes->setLayout(newPrototypeLayout);
-
-   QGridLayout* newInstanceLayout = new QGridLayout;
-   newInstanceLayout->addWidget(m_wgtCboInstances, 0, 0, 1, 2);
-   newInstanceLayout->addWidget(m_wgtTxtNewInstance, 1, 1);
-   newInstanceLayout->addWidget(m_wgtBtnNewInstance, 1, 2);
-   m_wgtGrpInstances->setLayout(newInstanceLayout);
+   QGridLayout* newAssetLayout = new QGridLayout;
+   newAssetLayout->addWidget(m_wgtTxtNewAsset, 1, 1, 1, 2);
+   newAssetLayout->addWidget(m_wgtChkNewIsPrototype, 2, 1, 1, 2);
+   newAssetLayout->addWidget(m_wgtBtnNewAsset, 3, 1, 1, 1);
+   m_wgtGrpAssets->setLayout(newAssetLayout);
 
 
    QHBoxLayout* mainLayout = new QHBoxLayout;
@@ -148,11 +148,11 @@ MainWindow::MainWindow(QWidget* parent)
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
    connect(m_actExport, SIGNAL(triggered()), this, SLOT(onExport()));
    connect(m_wgtXmlApply, SIGNAL(released()), this, SLOT(btnApplyClick()));
-   connect(m_wgtBtnNewPrototype, SIGNAL(released()), this, SLOT(btnNewPrototypeClick()));
-   connect(m_wgtBtnNewInstance, SIGNAL(released()), this, SLOT(btnNewInstanceClick()));
+   connect(m_wgtBtnNewAsset, SIGNAL(released()), this, SLOT(btnNewAssetClick()));
    connect(m_wgtXmlTree, SIGNAL(onUpdate()), this, SLOT(xmlTreeUpdated()));
    connect(m_wgtCboPrototypes, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onPrototypeSelection(const QString&)));
-   connect(m_wgtCboInstances, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onInstanceSelection(const QString&)));
+   connect(m_wgtLstAssets, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(onAssetSelection(QListWidgetItem*)));
+   connect(m_wgtChkPrototype, SIGNAL(stateChanged(int)), this, SLOT(onChkPrototypeChanged(int)));
 }
 
 //===========================================
@@ -228,37 +228,64 @@ void MainWindow::onExport() {
 }
 
 //===========================================
-// MainWindow::onPrototypeSelection
+// MainWindow::onChkPrototypeChanged
 //===========================================
-void MainWindow::onPrototypeSelection(const QString& name) {
-   m_wgtXmlApply->setDisabled(false);
+void MainWindow::onChkPrototypeChanged(int state) {
+   if (!m_current.lock()) return;
 
-   auto obj = m_objects.get(name);
-   assert(obj.lock());
+   shared_ptr<EptObject> obj = m_current.lock();
+   QString name = obj->name();
 
-   m_current = obj;
+   int idx = m_wgtCboPrototypes->findText(name);
+   if (idx != -1) {
+      m_wgtCboPrototypes->removeItem(idx);
+   }
 
-   string text;
-   m_current.lock()->xml().lock()->print(text);
-
-   m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+   switch (state) {
+      case Qt::Checked: {
+         m_objects.changeType(name, EptObject::PROTOTYPE);
+         m_wgtCboPrototypes->addItem(name);
+      }
+      break;
+      case Qt::Unchecked: {
+         m_objects.changeType(name, EptObject::INSTANCE);
+      }
+      break;
+      default: assert(false);
+   }
 }
 
 //===========================================
-// MainWindow::onInstanceSelection
+// MainWindow::onPrototypeSelection
 //===========================================
-void MainWindow::onInstanceSelection(const QString& name) {
+void MainWindow::onPrototypeSelection(const QString& name) {
+   // TODO
+}
+
+//===========================================
+// MainWindow::onAssetSelection
+//===========================================
+void MainWindow::onAssetSelection(QListWidgetItem* item) {
    m_wgtXmlApply->setDisabled(false);
 
-   auto obj = m_objects.get(name);
-   assert(obj.lock());
+   QString name = item->text();
 
+   auto obj = m_objects.get(name);
    m_current = obj;
 
+   shared_ptr<EptObject> pObj = m_current.lock();
+   assert(pObj);
+
    string text;
-   m_current.lock()->xml().lock()->print(text);
+   auto xml = pObj->xml().lock();
+   xml->print(text);
+
+   m_wgtXmlTree->update(xml);
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+
+   bool b = pObj->type() == EptObject::PROTOTYPE;
+   m_wgtChkPrototype->setCheckState(b ? Qt::Checked : Qt::Unchecked);
 }
 
 //===========================================
@@ -272,47 +299,33 @@ void MainWindow::xmlTreeUpdated() {
 }
 
 //===========================================
-// MainWindow::btnNewPrototypeClick
+// MainWindow::btnNewAssetClick
 //===========================================
-void MainWindow::btnNewPrototypeClick() {
-   QString str = m_wgtTxtNewPrototype->text();
+void MainWindow::btnNewAssetClick() {
+   QString str = m_wgtTxtNewAsset->text();
 
    if (m_objects.contains(str)) {
-      alert("Instance or prototype with that name already exists");
+      alert("Asset with that name already exists");
       return;
    }
 
-   m_wgtTxtNewPrototype->clear();
+   m_wgtTxtNewAsset->clear();
 
-   shared_ptr<EptObject> ent(new EptObject(str, EptObject::PROTOTYPE));
+   bool isProto = m_wgtChkNewIsPrototype->isChecked();
+
+   shared_ptr<EptObject> ent(new EptObject(str, isProto ? EptObject::PROTOTYPE : EptObject::INSTANCE));
 
    m_objects.insert(ent);
    m_current = ent;
 
-   m_wgtCboPrototypes->addItem(str);
-   m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
-}
+   QListWidgetItem* item = new QListWidgetItem(str, m_wgtLstAssets);
 
-//===========================================
-// MainWindow::btnNewInstanceClick
-//===========================================
-void MainWindow::btnNewInstanceClick() {
-   QString str = m_wgtTxtNewInstance->text();
+   m_wgtLstAssets->addItem(item);
+   m_wgtLstAssets->setCurrentItem(item);
 
-   if (m_objects.contains(str)) {
-      alert("Instance or prototype with that name already exists");
-      return;
-   }
+   m_wgtChkNewIsPrototype->setCheckState(Qt::Unchecked);
 
-   m_wgtTxtNewInstance->clear();
-
-   shared_ptr<EptObject> ent(new EptObject(str, EptObject::INSTANCE));
-
-   m_objects.insert(ent);
-   m_current = ent;
-
-   m_wgtCboInstances->addItem(str);
-   m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
+   onAssetSelection(item);
 }
 
 //===========================================
