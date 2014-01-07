@@ -16,4 +16,8 @@ typedef Dodge::Exception EptException;
 }
 
 
+class QString;
+void alert(const QString& msg);
+
+
 #endif

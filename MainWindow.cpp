@@ -33,8 +33,7 @@ using namespace Dodge;
 MainWindow::MainWindow(QWidget* parent)
    : QMainWindow(parent) {
 
-   m_root = ".";
-   m_current = NULL;
+   m_root = "./export";
 
    resize(600, 400);
    setWindowTitle("Dodge :: Entity Placement Tool");
@@ -157,9 +156,9 @@ MainWindow::MainWindow(QWidget* parent)
 }
 
 //===========================================
-// MainWindow::onExport
+// MainWindow::exportMapSettings
 //===========================================
-void MainWindow::onExport() {
+void MainWindow::exportMapSettings() {
    const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
    XmlDocument xml = settings.toXml();
 
@@ -171,9 +170,61 @@ void MainWindow::onExport() {
       EXCEPTION("Error opening file '" << path << "'");
    }
 
+   fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
    xml.print(fout);
 
    fout.close();
+}
+
+//===========================================
+// MainWindow::exportPrototypes
+//===========================================
+void MainWindow::exportPrototypes() {
+   const ObjectContainer::wkPtrSet_t& objs = m_objects.get(EptObject::PROTOTYPE);
+
+   for (auto i = objs.begin(); i != objs.end(); ++i) {
+      shared_ptr<EptObject> obj = i->lock();
+      assert(obj);
+
+      stringstream ss;
+      ss << m_root << "/" << obj->name().toLocal8Bit().data() << ".xml";
+
+      ofstream fout(ss.str());
+      if (!fout.good()) {
+         fout.close();
+         cerr << "Error writing to file '" << ss.str() << "'\n";
+
+         continue;
+      }
+
+      auto xml = obj->xml().lock();
+      assert(xml);
+
+      fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+      fout << "<ASSETFILE>\n";
+      fout << "<assets>\n";
+      xml->print(fout);
+      fout << "</assets>\n";
+      fout << "</ASSETFILE>\n";
+
+      fout.close();
+   }
+}
+
+//===========================================
+// MainWindow::exportInstances
+//===========================================
+void MainWindow::exportInstances() {
+   // TODO
+}
+
+//===========================================
+// MainWindow::onExport
+//===========================================
+void MainWindow::onExport() {
+   exportMapSettings();
+   exportPrototypes();
+   exportInstances();
 }
 
 //===========================================
@@ -182,14 +233,13 @@ void MainWindow::onExport() {
 void MainWindow::onPrototypeSelection(const QString& name) {
    m_wgtXmlApply->setDisabled(false);
 
-   auto i = m_objects.find(name);
-   assert(i != m_objects.end());
+   auto obj = m_objects.get(name);
+   assert(obj.lock());
 
-   m_current = i->second.get();
+   m_current = obj;
 
-   auto p = m_current->xml().lock();
    string text;
-   p->print(text);
+   m_current.lock()->xml().lock()->print(text);
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
@@ -200,13 +250,13 @@ void MainWindow::onPrototypeSelection(const QString& name) {
 void MainWindow::onInstanceSelection(const QString& name) {
    m_wgtXmlApply->setDisabled(false);
 
-   auto i = m_objects.find(name);
-   assert(i != m_objects.end());
+   auto obj = m_objects.get(name);
+   assert(obj.lock());
 
-   m_current = i->second.get();
+   m_current = obj;
 
    string text;
-   m_current->xml().lock()->print(text);
+   m_current.lock()->xml().lock()->print(text);
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
@@ -216,7 +266,7 @@ void MainWindow::onInstanceSelection(const QString& name) {
 //===========================================
 void MainWindow::xmlTreeUpdated() {
    string text;
-   m_current->xml().lock()->print(text);
+   m_current.lock()->xml().lock()->print(text);
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
@@ -227,21 +277,20 @@ void MainWindow::xmlTreeUpdated() {
 void MainWindow::btnNewPrototypeClick() {
    QString str = m_wgtTxtNewPrototype->text();
 
-   auto i = m_objects.find(str);
-   if (i != m_objects.end()) {
-      // TODO
+   if (m_objects.contains(str)) {
+      alert("Instance or prototype with that name already exists");
+      return;
    }
-   else {
-      m_wgtTxtNewPrototype->clear();
 
-      EptObject* ent = new EptObject(str, EptObject::PROTOTYPE);
+   m_wgtTxtNewPrototype->clear();
 
-      m_objects[str] = unique_ptr<EptObject>(ent);
-      m_current = ent;
+   shared_ptr<EptObject> ent(new EptObject(str, EptObject::PROTOTYPE));
 
-      m_wgtCboPrototypes->addItem(str);
-      m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
-   }
+   m_objects.insert(ent);
+   m_current = ent;
+
+   m_wgtCboPrototypes->addItem(str);
+   m_wgtCboPrototypes->setCurrentIndex(m_wgtCboPrototypes->count() - 1);
 }
 
 //===========================================
@@ -250,21 +299,20 @@ void MainWindow::btnNewPrototypeClick() {
 void MainWindow::btnNewInstanceClick() {
    QString str = m_wgtTxtNewInstance->text();
 
-   auto i = m_objects.find(str);
-   if (i != m_objects.end()) {
-      // TODO
+   if (m_objects.contains(str)) {
+      alert("Instance or prototype with that name already exists");
+      return;
    }
-   else {
-      m_wgtTxtNewInstance->clear();
 
-      EptObject* ent = new EptObject(str, EptObject::INSTANCE);
+   m_wgtTxtNewInstance->clear();
 
-      m_objects[str] = unique_ptr<EptObject>(ent);
-      m_current = ent;
+   shared_ptr<EptObject> ent(new EptObject(str, EptObject::INSTANCE));
 
-      m_wgtCboInstances->addItem(str);
-      m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
-   }
+   m_objects.insert(ent);
+   m_current = ent;
+
+   m_wgtCboInstances->addItem(str);
+   m_wgtCboInstances->setCurrentIndex(m_wgtCboInstances->count() - 1);
 }
 
 //===========================================
@@ -277,7 +325,7 @@ void MainWindow::btnApplyClick() {
    int len = bytes.length();
 
    try {
-      weak_ptr<XmlDocument> doc = m_current->xml();
+      weak_ptr<XmlDocument> doc = m_current.lock()->xml();
       auto p = doc.lock();
 
       if (p) {

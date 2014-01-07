@@ -11,5 +11,5 @@ QMAKE_LIBDIR = ../Dodge/lib
 LIBS += -lDodge -lX11 -lGL -lGLEW
 
 # Input
-HEADERS += Application.hpp EptObject.hpp MainWindow.hpp WgtMapSettings.hpp WgtXmlTreeView.hpp
-SOURCES += Application.cpp EptObject.cpp main.cpp MainWindow.cpp WgtMapSettings.cpp WgtXmlTreeView.cpp
+HEADERS += Application.hpp Common.hpp EptObject.hpp MainWindow.hpp ObjectContainer.hpp WgtMapSettings.hpp WgtXmlTreeView.hpp
+SOURCES += Application.cpp Common.cpp EptObject.cpp main.cpp MainWindow.cpp ObjectContainer.cpp WgtMapSettings.cpp WgtXmlTreeView.cpp
