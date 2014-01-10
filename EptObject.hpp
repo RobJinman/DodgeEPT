@@ -9,9 +9,19 @@
 #include <dodge/math/Vec2i.hpp>
 
 
+struct XmlParseResult {
+   enum result_t { SUCCESS, FAILURE };
+
+   XmlParseResult()
+      : result(SUCCESS) {}
+
+   result_t result;
+   std::string msg;
+};
+
 class EptObject {
    public:
-      friend class ObjectContainer;
+      friend class EptObjAccessor;
 
       enum type_t { INSTANCE, PROTOTYPE };
 
@@ -21,19 +31,34 @@ class EptObject {
       inline long id() const;
       inline const QString& name() const;
       inline type_t type() const;
-      inline std::weak_ptr<Dodge::XmlDocument> xml() const;
+      inline const std::weak_ptr<Dodge::XmlDocument> xml() const;
+      void parseXml(const QString& text, XmlParseResult& result);
+      inline const std::set<long>& dependencies() const;
 
-      const std::set<long>& computeDependenciesFromXml() const;
+      void computeDependencies();
 
    private:
+      void computeDependencies_r(const Dodge::XmlNode& node, int depth = 0);
+
       long m_id;
       type_t m_type;
       QString m_name;
       Dodge::Vec2i m_segment;
       std::shared_ptr<Dodge::XmlDocument> m_xml;
-      mutable std::set<long> m_dependencies;
+      std::set<long> m_dependencies;
 
       static long m_nextId;
+};
+
+class EptObjAccessor {
+   public:
+      static Dodge::Vec2i& segment(EptObject& obj) {
+         return obj.m_segment;
+      }
+
+      static EptObject::type_t& type(EptObject& obj) {
+         return obj.m_type;
+      }
 };
 
 inline long EptObject::id() const {
@@ -52,8 +77,12 @@ inline const Dodge::Vec2i& EptObject::segment() const {
    return m_segment;
 }
 
-inline std::weak_ptr<Dodge::XmlDocument> EptObject::xml() const {
+inline const std::weak_ptr<Dodge::XmlDocument> EptObject::xml() const {
    return m_xml;
+}
+
+inline const std::set<long>& EptObject::dependencies() const {
+   return m_dependencies;
 }
 
 

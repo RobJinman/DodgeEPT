@@ -4,6 +4,8 @@
 
 #include <QMainWindow>
 #include <map>
+#include <vector>
+#include <set>
 #include "ObjectContainer.hpp"
 
 
@@ -20,9 +22,9 @@ class QLineEdit;
 class QLabel;
 class QSpinBox;
 class QDoubleSpinBox;
-class QListWidget;
-class QListWidgetItem;
 class QCheckBox;
+class QTreeWidget;
+class QTreeWidgetItem;
 class WgtXmlTreeView;
 class WgtMapSettings;
 
@@ -40,19 +42,26 @@ class MainWindow : public QMainWindow {
       void btnNewAssetClick();
       void xmlTreeUpdated();
       void onPrototypeSelection(const QString& name);
-      void onAssetSelection(QListWidgetItem* item);
+      void onAssetSelection(QTreeWidgetItem* item, int column);
       void onExport();
       void onChkPrototypeChanged(int state);
 
    private:
-      void exportMapSettings();
+      typedef std::map<long, std::vector<long> > dependencyGraph_t;
+
+      void buildMapFile();
       void exportPrototypes();
       void exportInstances();
+      void computeDependencies();
+      void updateAssetList(const QString& select);
+      void updateAssetList_r(QTreeWidgetItem* parent, std::weak_ptr<EptObject> obj);
 
       ObjectContainer            m_objects;
 
       std::string                m_root;
       std::weak_ptr<EptObject>   m_current;
+
+      dependencyGraph_t          m_dependencyGraph;
 
       QMenu*                     m_mnuFile;
       QAction*                   m_actSave;
@@ -75,13 +84,12 @@ class MainWindow : public QMainWindow {
       WgtXmlTreeView*            m_wgtXmlTree;
       QCheckBox*                 m_wgtChkPrototype;
       QWidget*                   m_wgtObjectsTab;
-      QListWidget*               m_wgtLstAssets;
+      QTreeWidget*               m_wgtTreAssets;
       QGroupBox*                 m_wgtGrpAssets;
       QLineEdit*                 m_wgtTxtNewAsset;
       QPushButton*               m_wgtBtnNewAsset;
       QCheckBox*                 m_wgtChkNewIsPrototype;
       WgtMapSettings*            m_wgtMapSettingsTab;
-
 };
 
 

@@ -6,6 +6,7 @@
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include "WgtMapSettings.hpp"
+#include "EptObject.hpp"
 
 
 using namespace std;
@@ -69,6 +70,19 @@ XmlDocument MapSettings::toXml() const {
             ss_vec2f.addAttribute("y", ss.str().data());
       XmlNode segmentsDir = settings.addNode("segmentsDir");
          segmentsDir.setValue("data/xml/0"); // TODO
+   XmlNode customSettings = doc.addNode("customSettings");
+   XmlNode using_ = doc.addNode("using");
+      for (unsigned int i = 0; i < includes.size(); ++i) {
+         XmlNode file = using_.addNode("file");
+         file.setValue(includes[i].toLocal8Bit().data());
+      }
+   XmlNode assets = doc.addNode("assets");
+      for (unsigned int i = 0; i < this->assets.size(); ++i) {
+         auto xml = this->assets[i].lock();
+         assert(xml);
+
+         assets.addNode(xml->firstNode());
+      }
 
    return doc;
 }
@@ -142,6 +156,20 @@ WgtMapSettings::WgtMapSettings(QWidget* parent)
 }
 
 //===========================================
+// WgtMapSettings::addTopLevelAsset
+//===========================================
+void WgtMapSettings::addTopLevelAsset(const EptObject& obj) {
+   m_mapSettings.assets.push_back(obj.xml());
+}
+
+//===========================================
+// WgtMapSettings::addFileDependency
+//===========================================
+void WgtMapSettings::addFileDependency(const QString& path) {
+   m_mapSettings.includes.push_back(path);
+}
+
+//===========================================
 // WgtMapSettings::mapSettings
 //===========================================
 const MapSettings& WgtMapSettings::mapSettings() const {
@@ -152,7 +180,7 @@ const MapSettings& WgtMapSettings::mapSettings() const {
    m_mapSettings.segmentSize.x = m_wgtSpnMapSegmentsSizeW->value();
    m_mapSettings.segmentSize.y = m_wgtSpnMapSegmentsSizeH->value();
 
-   m_mapSettings.filePath = "test.xml"; // TODO
+   m_mapSettings.filePath = "map0.xml"; // TODO
 
    return m_mapSettings;
 }

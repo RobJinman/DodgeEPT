@@ -3,6 +3,7 @@
 
 
 #include <sstream>
+#include <string>
 #include <dodge/Exception.hpp>
 
 
@@ -18,6 +19,7 @@ typedef Dodge::Exception EptException;
 
 class QString;
 void alert(const QString& msg);
+void alert_std(const std::string& msg);
 
 
 #endif

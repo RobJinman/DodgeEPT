@@ -3,6 +3,7 @@
 
 
 using namespace std;
+using namespace Dodge;
 
 
 //===========================================
@@ -16,7 +17,18 @@ ObjectContainer::ObjectContainer() {
 // ObjectContainer::insert
 //===========================================
 void ObjectContainer::insert(shared_ptr<EptObject> obj) {
-   resize(obj->m_segment.x, obj->m_segment.y);
+   Vec2i& seg = EptObjAccessor::segment(*obj);
+
+   bool global = false;
+
+   if (seg.x < 0 || seg.y < 0) {
+      if (seg.x == -1 && seg.y == -1)
+         global = true;
+      else
+         EXCEPTION("Index out of range");
+   }
+
+   if (!global) resize(seg.x, seg.y);
 
    m_objects.insert(obj);
 
@@ -26,8 +38,13 @@ void ObjectContainer::insert(shared_ptr<EptObject> obj) {
       default: assert(false);
    }
 
+   m_byId.insert(make_pair(obj->id(), obj));
    m_byName.insert(make_pair(obj->name(), obj));
-   m_bySegment[obj->m_segment.x][obj->m_segment.y].insert(obj);
+
+   if (global)
+      m_globals.insert(obj);
+   else
+      m_bySegment[seg.x][seg.y].insert(obj);
 }
 
 //===========================================
@@ -40,15 +57,8 @@ bool ObjectContainer::contains(const QString& name) const {
 //===========================================
 // ObjectContainer::get
 //===========================================
-weak_ptr<EptObject> ObjectContainer::get(const QString& name) const {
-   auto i = m_byName.find(name);
-   return i == m_byName.end() ? weak_ptr<EptObject>() : i->second;
-}
-
-//===========================================
-// ObjectContainer::get
-//===========================================
 const ObjectContainer::wkPtrSet_t& ObjectContainer::get(int i, int j) const {
+   if (i == -1 && j == -1) return m_globals;
    if (i < 0) EXCEPTION("Index out of range");
    if (j < 0) EXCEPTION("Index out of range");
    if (i >= static_cast<int>(m_bySegment.size())) EXCEPTION("Index out of range");
@@ -69,11 +79,13 @@ void ObjectContainer::move(const QString& name, int i, int j) {
    auto ptr = it->second.lock();
    assert(ptr);
 
-   int x = ptr->m_segment.x;
-   int y = ptr->m_segment.y;
+   Vec2i& seg = EptObjAccessor::segment(*ptr);
 
-   ptr->m_segment = Dodge::Vec2i(i, j);
+   int x = seg.x;
+   int y = seg.y;
+   seg = Dodge::Vec2i(i, j);
 
+   m_globals.erase(ptr);
    insert(ptr);
    m_bySegment[x][y].erase(ptr);
 }
@@ -87,8 +99,9 @@ void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
       EXCEPTION("No object with name '" << name.toLocal8Bit().data() << "'");
 
    auto ptr = i->second.lock();
+   assert(ptr);
 
-   ptr->m_type = type;
+   EptObjAccessor::type(*ptr) = type;
 
    if (type == EptObject::PROTOTYPE) {
       m_instances.erase(ptr);

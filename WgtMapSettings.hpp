@@ -2,7 +2,9 @@
 #define __WGT_MAP_SETTINGS_HPP__
 
 
+#include <memory>
 #include <QWidget>
+#include <vector>
 #include <dodge/Range.hpp>
 #include <dodge/math/Vec2i.hpp>
 
@@ -13,6 +15,8 @@ class MapSettings {
       Dodge::Vec2i numSegments;
       Dodge::Vec2f segmentSize;
       std::string filePath;
+      std::vector<QString> includes;
+      std::vector<std::weak_ptr<Dodge::XmlDocument> > assets;
 
       Dodge::XmlDocument toXml() const;
 };
@@ -22,12 +26,16 @@ class QGroupBox;
 class QLabel;
 class QSpinBox;
 class QDoubleSpinBox;
+class EptObject;
 
 class WgtMapSettings : public QWidget {
    Q_OBJECT
 
    public:
       WgtMapSettings(QWidget* parent = NULL);
+
+      void addTopLevelAsset(const EptObject& obj);
+      void addFileDependency(const QString& path);
 
       const MapSettings& mapSettings() const;
 

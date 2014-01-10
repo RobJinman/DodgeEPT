@@ -17,7 +17,7 @@
 #include <QLabel>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
-#include <QListWidget>
+#include <QTreeWidget>
 #include <QCheckBox>
 #include "MainWindow.hpp"
 #include "WgtXmlTreeView.hpp"
@@ -67,7 +67,7 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtXmlTree = new WgtXmlTreeView(m_wgtXmlTreeTab);
    m_wgtChkPrototype = new QCheckBox("prototype", m_wgtXmlTreeTab);
    m_wgtObjectsTab = new QWidget(m_wgtRightColumnTabs);
-   m_wgtLstAssets = new QListWidget(m_wgtObjectsTab);
+   m_wgtTreAssets = new QTreeWidget(m_wgtObjectsTab);
    m_wgtGrpAssets = new QGroupBox("New", m_wgtObjectsTab);
    m_wgtTxtNewAsset = new QLineEdit(m_wgtGrpAssets);
    m_wgtChkNewIsPrototype = new QCheckBox("prototype", m_wgtGrpAssets);
@@ -125,7 +125,7 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtXmlTreeTab->setLayout(xmlTreeTabLayout);
 
    QVBoxLayout* objectsTabLayout = new QVBoxLayout;
-   objectsTabLayout->addWidget(m_wgtLstAssets);
+   objectsTabLayout->addWidget(m_wgtTreAssets);
    objectsTabLayout->addWidget(m_wgtGrpAssets);
    m_wgtObjectsTab->setLayout(objectsTabLayout);
 
@@ -151,15 +151,24 @@ MainWindow::MainWindow(QWidget* parent)
    connect(m_wgtBtnNewAsset, SIGNAL(released()), this, SLOT(btnNewAssetClick()));
    connect(m_wgtXmlTree, SIGNAL(onUpdate()), this, SLOT(xmlTreeUpdated()));
    connect(m_wgtCboPrototypes, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onPrototypeSelection(const QString&)));
-   connect(m_wgtLstAssets, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(onAssetSelection(QListWidgetItem*)));
+   connect(m_wgtTreAssets, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(onAssetSelection(QTreeWidgetItem*, int)));
    connect(m_wgtChkPrototype, SIGNAL(stateChanged(int)), this, SLOT(onChkPrototypeChanged(int)));
 }
 
 //===========================================
-// MainWindow::exportMapSettings
+// MainWindow::buildMapFile
 //===========================================
-void MainWindow::exportMapSettings() {
+void MainWindow::buildMapFile() {
    const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+
+   auto objs = m_objects.get(-1, -1);
+   for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
+      auto ptr = iObj->lock();
+      assert(ptr);
+
+      m_wgtMapSettingsTab->addTopLevelAsset(*ptr);
+   }
+
    XmlDocument xml = settings.toXml();
 
    string path = m_root + "/" + settings.filePath;
@@ -171,7 +180,9 @@ void MainWindow::exportMapSettings() {
    }
 
    fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+   fout << "<MAPFILE>\n";
    xml.print(fout);
+   fout << "</MAPFILE>\n";
 
    fout.close();
 }
@@ -197,6 +208,8 @@ void MainWindow::exportPrototypes() {
          continue;
       }
 
+      m_wgtMapSettingsTab->addFileDependency(QString(ss.str().data()));
+
       auto xml = obj->xml().lock();
       assert(xml);
 
@@ -215,16 +228,52 @@ void MainWindow::exportPrototypes() {
 // MainWindow::exportInstances
 //===========================================
 void MainWindow::exportInstances() {
-   // TODO
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+
+   const Vec2i& segs = settings.numSegments;
+
+   for (int i = 0; i < segs.x; ++i) {
+      for (int j = 0; j < segs.y; ++j) {
+         stringstream ss;
+         ss << m_root << "/" << settings.filePath << "/" << i << j;
+
+         ofstream fout(ss.str());
+         if (!fout.good()) {
+            fout.close();
+            EXCEPTION("Error opening file '" << ss.str() << "'");
+         }
+
+         fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+         fout << "<ASSETFILE>\n";
+         fout << "<assets>\n";
+
+         auto objs = m_objects.get(i, j);
+
+         for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
+            auto obj = iObj->lock();
+            assert(obj);
+
+            auto xml = obj->xml().lock();
+            assert(xml);
+
+            xml->print(fout);
+         }
+
+         fout << "</assets>\n";
+         fout << "</ASSETFILE>\n";
+
+         fout.close();
+      }
+   }
 }
 
 //===========================================
 // MainWindow::onExport
 //===========================================
 void MainWindow::onExport() {
-   exportMapSettings();
    exportPrototypes();
    exportInstances();
+   buildMapFile();
 }
 
 //===========================================
@@ -265,10 +314,10 @@ void MainWindow::onPrototypeSelection(const QString& name) {
 //===========================================
 // MainWindow::onAssetSelection
 //===========================================
-void MainWindow::onAssetSelection(QListWidgetItem* item) {
+void MainWindow::onAssetSelection(QTreeWidgetItem* item, int column) {
    m_wgtXmlApply->setDisabled(false);
 
-   QString name = item->text();
+   QString name = item->text(0);
 
    auto obj = m_objects.get(name);
    m_current = obj;
@@ -292,10 +341,18 @@ void MainWindow::onAssetSelection(QListWidgetItem* item) {
 // MainWindow::xmlTreeUpdated
 //===========================================
 void MainWindow::xmlTreeUpdated() {
+   auto obj = m_current.lock();
+   assert(obj);
+
+   // In case object's dependencies have changed
+   obj->computeDependencies();
+
    string text;
-   m_current.lock()->xml().lock()->print(text);
+   obj->xml().lock()->print(text);
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+
+   updateAssetList(obj->name());
 }
 
 //===========================================
@@ -318,37 +375,86 @@ void MainWindow::btnNewAssetClick() {
    m_objects.insert(ent);
    m_current = ent;
 
-   QListWidgetItem* item = new QListWidgetItem(str, m_wgtLstAssets);
-
-   m_wgtLstAssets->addItem(item);
-   m_wgtLstAssets->setCurrentItem(item);
+   updateAssetList(str);
 
    m_wgtChkNewIsPrototype->setCheckState(Qt::Unchecked);
+}
 
-   onAssetSelection(item);
+//===========================================
+// MainWindow::updateAssetList
+//===========================================
+void MainWindow::updateAssetList(const QString& select) {
+   m_wgtTreAssets->clear();
+
+   for (ObjectContainer::iterator i = m_objects.begin(); i != m_objects.end(); ++i) {
+      auto obj = i->lock();
+      const QString& name = obj->name();
+
+      QTreeWidgetItem* item = new QTreeWidgetItem(m_wgtTreAssets, QStringList(name));
+
+      m_wgtTreAssets->addTopLevelItem(item);
+      updateAssetList_r(item, obj);
+   }
+
+   QList<QTreeWidgetItem*> items = m_wgtTreAssets->findItems(select, 0, 0);
+   assert(items.size() == 1);
+
+   m_wgtTreAssets->setCurrentItem(items[0]);
+   onAssetSelection(items[0], 0);
+}
+
+//===========================================
+// MainWindow::updateAssetList_r
+//===========================================
+void MainWindow::updateAssetList_r(QTreeWidgetItem* parent, weak_ptr<EptObject> obj) {
+   auto pObj = obj.lock();
+   assert(pObj);
+
+   const set<long>& deps = pObj->dependencies();
+   for (auto i = deps.begin(); i != deps.end(); ++i) {
+      auto objDep = m_objects.get(*i).lock();
+
+      // Dependency doesn't exist (yet).
+      if (!objDep) continue;
+
+      QTreeWidgetItem* item = new QTreeWidgetItem(parent, QStringList(objDep->name()));
+      parent->addChild(item);
+
+      updateAssetList_r(item, objDep);
+   }
 }
 
 //===========================================
 // MainWindow::btnApplyClick
 //===========================================
 void MainWindow::btnApplyClick() {
+   auto obj = m_current.lock();
+   assert(obj);
+
    QString str = m_wgtXmlEdit->toPlainText();
-   QByteArray bytes = str.toLocal8Bit();
-   const char* data = bytes.data();
-   int len = bytes.length();
 
-   try {
-      weak_ptr<XmlDocument> doc = m_current.lock()->xml();
-      auto p = doc.lock();
+   XmlParseResult res;
+   obj->parseXml(str, res);
 
-      if (p) {
-         p->parse(data, len);
-
-         m_wgtXmlTree->update(doc);
-      }
+   if (res.result == XmlParseResult::FAILURE) {
+      alert_std("Error in xml: " + res.msg);
+      return;
    }
-   catch (XmlException& e) {
-      cout << e.what() << "\n";
+
+   auto doc = obj->xml().lock();
+   assert(doc);
+
+   m_wgtXmlTree->update(doc);
+   updateAssetList(obj->name());
+}
+
+//===========================================
+// MainWindow::computeDependencies
+//===========================================
+void MainWindow::computeDependencies() {
+   for (ObjectContainer::iterator i = m_objects.begin(); i != m_objects.end(); ++i) {
+      // TODO
+      cout << i->lock()->name().toLocal8Bit().data() << "\n";
    }
 }
 

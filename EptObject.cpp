@@ -1,3 +1,4 @@
+#include <sstream>
 #include "EptObject.hpp"
 
 
@@ -18,8 +19,89 @@ EptObject::EptObject(const QString& name, type_t type)
 }
 
 //===========================================
-// EptObject::computeDependenciesFromXml
+// EptObject::parseXml
 //===========================================
-const std::set<long>& EptObject::computeDependenciesFromXml() const {
-   // TODO
+void EptObject::parseXml(const QString& text, XmlParseResult& result) {
+   QByteArray bytes = text.toLocal8Bit();
+   const char* data = bytes.data();
+   int len = bytes.length();
+
+   result.result = XmlParseResult::SUCCESS;
+
+   try {
+      m_xml->parse(data, len);
+
+      XmlNode node = m_xml->firstNode();
+      if (node.name() != "asset") {
+         result.result = XmlParseResult::FAILURE;
+         result.msg = "Expected 'asset' tag";
+         return;
+      }
+
+      XmlAttribute attr = node.firstAttribute();
+      bool b = false;
+      while (!attr.isNull()) {
+         if (attr.name() == "assetId") {
+            stringstream ss;
+            ss << m_id;
+
+            attr.setValue(ss.str());
+            b = true;
+            break;
+         }
+
+         attr = attr.nextAttribute();
+      }
+
+      if (!b) {
+         result.result = XmlParseResult::FAILURE;
+         result.msg = "Expected 'assetId' attribute";
+         return;
+      }
+
+      computeDependencies();
+   }
+   catch (XmlException& e) {
+      result.result = XmlParseResult::FAILURE;
+      result.msg = e.what();
+   }
+}
+
+//===========================================
+// EptObject::computeDependencies
+//
+// Traverse XML tree looking for attributes named 'assetId' or
+// 'protoId'.
+//===========================================
+void EptObject::computeDependencies() {
+   XmlNode node = m_xml->firstNode();
+   assert(node.name() == "asset");
+
+   m_dependencies.clear();
+   computeDependencies_r(node);
+}
+
+//===========================================
+// EptObject::computeDependencies_r
+//===========================================
+void EptObject::computeDependencies_r(const XmlNode& node, int depth) {
+
+   XmlAttribute attr = node.firstAttribute();
+   while (!attr.isNull()) {
+      if (attr.name() == "protoId" || (attr.name() == "assetId" && depth > 0)) {
+         try {
+            long num = attr.getLong();
+            m_dependencies.insert(num);
+         }
+         catch (XmlException&) {}
+      }
+
+      attr = attr.nextAttribute();
+   }
+
+   XmlNode ch = node.firstChild();
+   while (!ch.isNull()) {
+      computeDependencies_r(ch, depth + 1);
+      ch = ch.nextSibling();
+   }
 }
