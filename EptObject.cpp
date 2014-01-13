@@ -19,6 +19,35 @@ EptObject::EptObject(const QString& name, type_t type)
 }
 
 //===========================================
+// EptObject::EptObject
+//===========================================
+EptObject::EptObject(const XmlNode& node, type_t type)
+   : m_id(m_nextId++), m_type(type) {
+
+   stringstream ss;
+   ss << "asset" << m_id;
+
+   m_name = QString(ss.str().data());
+   m_xml = shared_ptr<XmlDocument>(new XmlDocument);
+
+   XML_NODE_CHECK(node, asset);
+   m_xml->addNode(node);
+}
+
+//===========================================
+// EptObject::EptObject
+//===========================================
+EptObject::EptObject(type_t type)
+   : m_id(m_nextId++), m_type(type) {
+
+   stringstream ss;
+   ss << "asset" << m_id;
+
+   m_name = QString(ss.str().data());
+   m_xml = shared_ptr<XmlDocument>(new XmlDocument);
+}
+
+//===========================================
 // EptObject::parseXml
 //===========================================
 void EptObject::parseXml(const QString& text, XmlParseResult& result) {
@@ -75,7 +104,7 @@ void EptObject::parseXml(const QString& text, XmlParseResult& result) {
 //===========================================
 void EptObject::computeDependencies() {
    XmlNode node = m_xml->firstNode();
-   assert(node.name() == "asset");
+   XML_NODE_CHECK(node, asset);
 
    m_dependencies.clear();
    computeDependencies_r(node);

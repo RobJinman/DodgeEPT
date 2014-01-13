@@ -14,6 +14,68 @@ using namespace Dodge;
 
 
 //===========================================
+// MapSettings::loadSettingsFromXml
+//===========================================
+void MapSettings::loadSettingsFromXml(XmlNode node) {
+   // <settings>
+   //   <boundary>
+   //     <Range>
+   //       <pos>
+   //         <Vec2f/>
+   //       </pos>
+   //       <size>
+   //         <Vec2f/>
+   //       </size>
+   //     </Range>
+   //   </boundary>
+   //   <numSegments>
+   //     <Vec2i/>
+   //   </numSegments>
+   //   <segmentSize>
+   //     <Vec2f/>
+   //   </segmentSize>
+   //   <segmentsDir/>
+   // </settings>
+
+   XML_NODE_CHECK(node, settings);
+
+   node = node.firstChild();
+   XML_NODE_CHECK(node, boundary);
+
+   boundary = Range(node.firstChild());
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, numSegments);
+   numSegments = Vec2i(node.firstChild());
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, segmentSize);
+   segmentSize = Vec2f(node.firstChild());
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, segmentsDir);
+   segmentsDir = node.getString();
+}
+
+//===========================================
+// MapSettings::loadIncludesFromXml
+//===========================================
+void MapSettings::loadIncludesFromXml(XmlNode node) {
+   includes.clear();
+
+   XML_NODE_CHECK(node, using);
+
+   node = node.firstChild();
+   while (!node.isNull()) {
+      XML_NODE_CHECK(node, file);
+
+      includes.push_back(QString(node.getString().data()));
+
+      node = node.nextSibling();
+   }
+}
+
+//===========================================
 // MapSettings::toXml
 //===========================================
 XmlDocument MapSettings::toXml() const {
@@ -153,6 +215,32 @@ WgtMapSettings::WgtMapSettings(QWidget* parent)
    mapSegmentsLayout->addWidget(m_wgtLblMapSegmentsSizeH, 1, 3);
    mapSegmentsLayout->addWidget(m_wgtSpnMapSegmentsSizeH, 1, 4);
    m_wgtGrpMapSegments->setLayout(mapSegmentsLayout);
+
+   connect(m_wgtSpnMapPositionX, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtSpnMapPositionY, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtSpnMapSizeW, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtSpnMapSizeH, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtSpnMapSegmentsQuantityW, SIGNAL(valueChanged(int)), this, SLOT(onChange(int)));
+   connect(m_wgtSpnMapSegmentsQuantityH, SIGNAL(valueChanged(int)), this, SLOT(onChange(int)));
+   connect(m_wgtSpnMapSegmentsSizeW, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtSpnMapSegmentsSizeH, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+
+   m_wgtSpnMapSegmentsQuantityW->setMinimum(1);
+   m_wgtSpnMapSegmentsQuantityH->setMinimum(1);
+}
+
+//===========================================
+// WgtMapSettings::onChange
+//===========================================
+void WgtMapSettings::onChange(int) {
+   emit changed();
+}
+
+//===========================================
+// WgtMapSettings::onChange
+//===========================================
+void WgtMapSettings::onChange(double) {
+   emit changed();
 }
 
 //===========================================
@@ -170,6 +258,44 @@ void WgtMapSettings::addFileDependency(const QString& path) {
 }
 
 //===========================================
+// WgtMapSettings::loadFromXml
+//===========================================
+void WgtMapSettings::loadFromXml(weak_ptr<XmlDocument> doc, XmlNode& assets) {
+   // <settings/>
+   // <customSettings/>
+   // <using/>
+   // <assets/>
+
+   auto pDoc = doc.lock();
+   assert(pDoc);
+
+   XmlNode node = pDoc->firstNode();
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, MAPFILE);
+
+   node = node.firstChild();
+   m_mapSettings.loadSettingsFromXml(node);
+
+   node = node.nextSibling(); // customSettings
+   node = node.nextSibling();
+   m_mapSettings.loadIncludesFromXml(node);
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, assets);
+
+   assets = node;
+
+   m_wgtSpnMapPositionX->setValue(m_mapSettings.boundary.getPosition().x);
+   m_wgtSpnMapPositionY->setValue(m_mapSettings.boundary.getPosition().y);
+   m_wgtSpnMapSizeW->setValue(m_mapSettings.boundary.getSize().x);
+   m_wgtSpnMapSizeH->setValue(m_mapSettings.boundary.getSize().y);
+   m_wgtSpnMapSegmentsQuantityW->setValue(m_mapSettings.numSegments.x);
+   m_wgtSpnMapSegmentsQuantityH->setValue(m_mapSettings.numSegments.y);
+   m_wgtSpnMapSegmentsSizeW->setValue(m_mapSettings.segmentSize.x);
+   m_wgtSpnMapSegmentsSizeH->setValue(m_mapSettings.segmentSize.y);
+}
+
+//===========================================
 // WgtMapSettings::mapSettings
 //===========================================
 const MapSettings& WgtMapSettings::mapSettings() const {
@@ -180,7 +306,8 @@ const MapSettings& WgtMapSettings::mapSettings() const {
    m_mapSettings.segmentSize.x = m_wgtSpnMapSegmentsSizeW->value();
    m_mapSettings.segmentSize.y = m_wgtSpnMapSegmentsSizeH->value();
 
-   m_mapSettings.filePath = "map0.xml"; // TODO
+   m_mapSettings.segmentsDir = "0"; // TODO
+   m_mapSettings.fileName = "map0.xml"; // TODO
 
    return m_mapSettings;
 }

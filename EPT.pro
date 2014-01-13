@@ -6,7 +6,7 @@ TEMPLATE = app
 TARGET = ept
 DEPENDPATH += .
 INCLUDEPATH += . ../Dodge/include
-QMAKE_CXXFLAGS = -std=c++0x -DDEBUG -g -DGLEW
+QMAKE_CXXFLAGS = -std=c++0x -DDEBUG -DLINUX -g -DGLEW
 QMAKE_LIBDIR = ../Dodge/lib
 LIBS += -lDodge -lX11 -lGL -lGLEW
 

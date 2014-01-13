@@ -25,7 +25,9 @@ class EptObject {
 
       enum type_t { INSTANCE, PROTOTYPE };
 
+      EptObject(const Dodge::XmlNode& node, type_t type);
       EptObject(const QString& name, type_t type);
+      EptObject(type_t type);
 
       inline const Dodge::Vec2i& segment() const;
       inline long id() const;

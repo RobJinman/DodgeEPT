@@ -14,10 +14,13 @@ class MapSettings {
       Dodge::Range boundary;
       Dodge::Vec2i numSegments;
       Dodge::Vec2f segmentSize;
-      std::string filePath;
+      std::string fileName;
+      std::string segmentsDir;
       std::vector<QString> includes;
       std::vector<std::weak_ptr<Dodge::XmlDocument> > assets;
 
+      void loadSettingsFromXml(Dodge::XmlNode node);
+      void loadIncludesFromXml(Dodge::XmlNode node);
       Dodge::XmlDocument toXml() const;
 };
 
@@ -34,14 +37,19 @@ class WgtMapSettings : public QWidget {
    public:
       WgtMapSettings(QWidget* parent = NULL);
 
+      void loadFromXml(std::weak_ptr<Dodge::XmlDocument> doc, Dodge::XmlNode& assets);
+
       void addTopLevelAsset(const EptObject& obj);
       void addFileDependency(const QString& path);
 
       const MapSettings& mapSettings() const;
 
    private slots:
+      void onChange(int);
+      void onChange(double);
 
    signals:
+      void changed();
 
    private:
       mutable MapSettings m_mapSettings;

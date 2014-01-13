@@ -43,12 +43,18 @@ class MainWindow : public QMainWindow {
       void xmlTreeUpdated();
       void onPrototypeSelection(const QString& name);
       void onAssetSelection(QTreeWidgetItem* item, int column);
+      void onImport();
       void onExport();
       void onChkPrototypeChanged(int state);
+      void onChkGlobalChanged(int state);
+      void onSpnSegmentXChanged(int value);
+      void onSpnSegmentYChanged(int value);
+      void onMapSettingsChange();
 
    private:
       typedef std::map<long, std::vector<long> > dependencyGraph_t;
 
+      void importAssets();
       void buildMapFile();
       void exportPrototypes();
       void exportInstances();
@@ -66,6 +72,7 @@ class MainWindow : public QMainWindow {
       QMenu*                     m_mnuFile;
       QAction*                   m_actSave;
       QAction*                   m_actSaveAs;
+      QAction*                   m_actImport;
       QAction*                   m_actExport;
       QAction*                   m_actQuit;
       QWidget*                   m_wgtCentral;
@@ -83,6 +90,13 @@ class MainWindow : public QMainWindow {
       QWidget*                   m_wgtXmlTreeTab;
       WgtXmlTreeView*            m_wgtXmlTree;
       QCheckBox*                 m_wgtChkPrototype;
+      QGroupBox*                 m_wgtGrpSegment;
+      QLabel*                    m_wgtLblSegmentX;
+      QLabel*                    m_wgtLblSegmentY;
+      QSpinBox*                  m_wgtSpnSegmentX;
+      QSpinBox*                  m_wgtSpnSegmentY;
+      QCheckBox*                 m_wgtChkGlobal;
+      QPushButton*               m_wgtBtnInferSegment;
       QWidget*                   m_wgtObjectsTab;
       QTreeWidget*               m_wgtTreAssets;
       QGroupBox*                 m_wgtGrpAssets;

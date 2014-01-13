@@ -28,7 +28,7 @@ void ObjectContainer::insert(shared_ptr<EptObject> obj) {
          EXCEPTION("Index out of range");
    }
 
-   if (!global) resize(seg.x, seg.y);
+   if (!global) resize(seg.x + 1, seg.y + 1);
 
    m_objects.insert(obj);
 
@@ -87,7 +87,11 @@ void ObjectContainer::move(const QString& name, int i, int j) {
 
    m_globals.erase(ptr);
    insert(ptr);
-   m_bySegment[x][y].erase(ptr);
+
+   if (x != -1 && y != -1) {
+      assert(x >= 0 && y >= 0);
+      m_bySegment[x][y].erase(ptr);
+   }
 }
 
 //===========================================
@@ -129,8 +133,13 @@ void ObjectContainer::resize(int i, int j) {
 
    assert(m_bySegment.size() > 0);
 
-   if (j > static_cast<int>(m_bySegment[0].size())) {
-      for (auto it = m_bySegment.begin(); it != m_bySegment.end(); ++it)
-         it->resize(j);
+   unsigned int h = (j > static_cast<int>(m_bySegment[0].size()) ? j : m_bySegment[0].size());
+
+   for (auto it = m_bySegment.begin(); it != m_bySegment.end(); ++it) {
+      if (it->size() < h) {
+         it->resize(h);
+      }
+      else
+         assert(it->size() == h);
    }
 }

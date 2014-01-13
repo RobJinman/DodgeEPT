@@ -42,12 +42,14 @@ MainWindow::MainWindow(QWidget* parent)
 
    m_actSave = new QAction("Save", this);
    m_actSaveAs = new QAction("Save As", this);
+   m_actImport = new QAction("Import", this);
    m_actExport = new QAction("Export", this);
    m_actQuit = new QAction("Quit", this);
 
    m_mnuFile = menuBar()->addMenu("File");
    m_mnuFile->addAction(m_actSave);
    m_mnuFile->addAction(m_actSaveAs);
+   m_mnuFile->addAction(m_actImport);
    m_mnuFile->addAction(m_actExport);
    m_mnuFile->addAction(m_actQuit);
 
@@ -66,6 +68,13 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtXmlTreeTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtXmlTree = new WgtXmlTreeView(m_wgtXmlTreeTab);
    m_wgtChkPrototype = new QCheckBox("prototype", m_wgtXmlTreeTab);
+   m_wgtGrpSegment = new QGroupBox("Segment", m_wgtXmlTreeTab);
+   m_wgtLblSegmentX = new QLabel("X", m_wgtGrpSegment);
+   m_wgtLblSegmentY = new QLabel("Y", m_wgtGrpSegment);
+   m_wgtSpnSegmentX = new QSpinBox(m_wgtGrpSegment);
+   m_wgtSpnSegmentY = new QSpinBox(m_wgtGrpSegment);
+   m_wgtChkGlobal = new QCheckBox("global", m_wgtGrpSegment);
+   m_wgtBtnInferSegment = new QPushButton("Infer from position", m_wgtXmlTreeTab);
    m_wgtObjectsTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtTreAssets = new QTreeWidget(m_wgtObjectsTab);
    m_wgtGrpAssets = new QGroupBox("New", m_wgtObjectsTab);
@@ -122,7 +131,20 @@ MainWindow::MainWindow(QWidget* parent)
    QVBoxLayout* xmlTreeTabLayout = new QVBoxLayout;
    xmlTreeTabLayout->addWidget(m_wgtXmlTree);
    xmlTreeTabLayout->addWidget(m_wgtChkPrototype);
+   xmlTreeTabLayout->addWidget(m_wgtGrpSegment);
    m_wgtXmlTreeTab->setLayout(xmlTreeTabLayout);
+
+   m_wgtSpnSegmentX->setMaximum(0);
+   m_wgtSpnSegmentY->setMaximum(0);
+
+   QGridLayout* segmentsLayout = new QGridLayout;
+   segmentsLayout->addWidget(m_wgtLblSegmentX, 0, 0);
+   segmentsLayout->addWidget(m_wgtSpnSegmentX, 0, 1);
+   segmentsLayout->addWidget(m_wgtLblSegmentY, 0, 2);
+   segmentsLayout->addWidget(m_wgtSpnSegmentY, 0, 3);
+   segmentsLayout->addWidget(m_wgtChkGlobal, 1, 0, 1, 2);
+   segmentsLayout->addWidget(m_wgtBtnInferSegment, 1, 2, 1, 2);
+   m_wgtGrpSegment->setLayout(segmentsLayout);
 
    QVBoxLayout* objectsTabLayout = new QVBoxLayout;
    objectsTabLayout->addWidget(m_wgtTreAssets);
@@ -146,6 +168,7 @@ MainWindow::MainWindow(QWidget* parent)
    mainLayout->addWidget(m_wgtRightColumnTabs, 3);
 
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
+   connect(m_actImport, SIGNAL(triggered()), this, SLOT(onImport()));
    connect(m_actExport, SIGNAL(triggered()), this, SLOT(onExport()));
    connect(m_wgtXmlApply, SIGNAL(released()), this, SLOT(btnApplyClick()));
    connect(m_wgtBtnNewAsset, SIGNAL(released()), this, SLOT(btnNewAssetClick()));
@@ -153,6 +176,100 @@ MainWindow::MainWindow(QWidget* parent)
    connect(m_wgtCboPrototypes, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onPrototypeSelection(const QString&)));
    connect(m_wgtTreAssets, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(onAssetSelection(QTreeWidgetItem*, int)));
    connect(m_wgtChkPrototype, SIGNAL(stateChanged(int)), this, SLOT(onChkPrototypeChanged(int)));
+   connect(m_wgtChkGlobal, SIGNAL(stateChanged(int)), this, SLOT(onChkGlobalChanged(int)));
+   connect(m_wgtSpnSegmentX, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentXChanged(int)));
+   connect(m_wgtSpnSegmentY, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentYChanged(int)));
+   connect(m_wgtMapSettingsTab, SIGNAL(changed()), this, SLOT(onMapSettingsChange()));
+}
+
+//===========================================
+// MainWindow::importAssets
+//===========================================
+void MainWindow::importAssets() {
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+
+   for (unsigned int i = 0; i < settings.includes.size(); ++i) {
+      string path(settings.includes[i].toLocal8Bit().data());
+
+      try {
+         shared_ptr<XmlDocument> doc(new XmlDocument);
+         doc->parse(path);
+
+         XmlNode node = doc->firstNode();
+         node = node.nextSibling();
+         XML_NODE_CHECK(node, ASSETFILE);
+
+         node = node.firstChild();
+         XML_NODE_CHECK(node, assets);
+
+         node = node.firstChild();
+
+         while (!node.isNull()) {
+            XML_NODE_CHECK(node, asset);
+
+            shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
+            m_objects.insert(ent);
+
+            node = node.nextSibling();
+         }
+      }
+      catch (XmlException&) {
+         // TODO
+         throw;
+
+         continue;
+      }
+   }
+}
+
+//===========================================
+// MainWindow::onImport
+//===========================================
+void MainWindow::onImport() {
+   string importPath("./import/map0.xml"); // TODO
+
+   shared_ptr<XmlDocument> doc(new XmlDocument);
+   doc->parse(importPath);
+
+   XmlNode assets;
+   m_wgtMapSettingsTab->loadFromXml(doc, assets);
+
+   XML_NODE_CHECK(assets, assets);
+   XmlNode node = assets.firstChild();
+
+   shared_ptr<EptObject> ent;
+
+   while (!node.isNull()) {
+      XML_NODE_CHECK(node, asset);
+
+      ent = shared_ptr<EptObject>(new EptObject(node, EptObject::INSTANCE));
+      m_objects.insert(ent);
+
+      node = node.nextSibling();
+   }
+
+   importAssets();
+
+   for (auto i = m_objects.begin(); i != m_objects.end(); ++i) {
+      auto obj = i->lock();
+      assert(obj);
+
+      obj->computeDependencies();
+   }
+
+   if (ent) {
+      updateAssetList(ent->name());
+   }
+}
+
+//===========================================
+// MainWindow::onMapSettingsChange
+//===========================================
+void MainWindow::onMapSettingsChange() {
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+
+   m_wgtSpnSegmentX->setMaximum(settings.numSegments.x - 1);
+   m_wgtSpnSegmentY->setMaximum(settings.numSegments.y - 1);
 }
 
 //===========================================
@@ -171,7 +288,7 @@ void MainWindow::buildMapFile() {
 
    XmlDocument xml = settings.toXml();
 
-   string path = m_root + "/" + settings.filePath;
+   string path = m_root + "/" + settings.fileName;
 
    ofstream fout(path);
    if (!fout.good()) {
@@ -235,7 +352,12 @@ void MainWindow::exportInstances() {
    for (int i = 0; i < segs.x; ++i) {
       for (int j = 0; j < segs.y; ++j) {
          stringstream ss;
-         ss << m_root << "/" << settings.filePath << "/" << i << j;
+         ss << m_root << "/" << settings.segmentsDir;
+
+         if (!createDir(ss.str()))
+            EXCEPTION("Error creating directory '" << ss.str() << "'");
+
+         ss << "/" << i << j << ".xml";
 
          ofstream fout(ss.str());
          if (!fout.good()) {
@@ -252,6 +374,8 @@ void MainWindow::exportInstances() {
          for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
             auto obj = iObj->lock();
             assert(obj);
+
+            if (obj->type() == EptObject::PROTOTYPE) continue;
 
             auto xml = obj->xml().lock();
             assert(xml);
@@ -274,6 +398,59 @@ void MainWindow::onExport() {
    exportPrototypes();
    exportInstances();
    buildMapFile();
+}
+
+//===========================================
+// MainWindow::onSpnSegmentXChanged
+//===========================================
+void MainWindow::onSpnSegmentXChanged(int value) {
+   auto obj = m_current.lock();
+   if (!obj) return;
+
+   int y = m_wgtSpnSegmentY->value();
+
+   m_objects.move(obj->name(), value, y);
+}
+
+//===========================================
+// MainWindow::onSpnSegmentYChanged
+//===========================================
+void MainWindow::onSpnSegmentYChanged(int value) {
+   auto obj = m_current.lock();
+   if (!obj) return;
+
+   int x = m_wgtSpnSegmentX->value();
+
+   m_objects.move(obj->name(), x, value);
+}
+
+//===========================================
+// MainWindow::onChkGlobalChanged
+//===========================================
+void MainWindow::onChkGlobalChanged(int state) {
+   auto obj = m_current.lock();
+
+   switch (state) {
+      case Qt::Checked: {
+         m_wgtSpnSegmentX->setDisabled(true);
+         m_wgtSpnSegmentY->setDisabled(true);
+         m_wgtBtnInferSegment->setDisabled(true);
+
+         if (obj) m_objects.move(obj->name(), -1, -1);
+      }
+      break;
+      case Qt::Unchecked: {
+         m_wgtSpnSegmentX->setDisabled(false);
+         m_wgtSpnSegmentY->setDisabled(false);
+         m_wgtBtnInferSegment->setDisabled(false);
+
+         int x = m_wgtSpnSegmentX->value();
+         int y = m_wgtSpnSegmentY->value();
+
+         if (obj) m_objects.move(obj->name(), x, y);
+      }
+      break;
+   }
 }
 
 //===========================================
@@ -314,7 +491,7 @@ void MainWindow::onPrototypeSelection(const QString& name) {
 //===========================================
 // MainWindow::onAssetSelection
 //===========================================
-void MainWindow::onAssetSelection(QTreeWidgetItem* item, int column) {
+void MainWindow::onAssetSelection(QTreeWidgetItem* item, int) {
    m_wgtXmlApply->setDisabled(false);
 
    QString name = item->text(0);
@@ -333,8 +510,18 @@ void MainWindow::onAssetSelection(QTreeWidgetItem* item, int column) {
 
    m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 
-   bool b = pObj->type() == EptObject::PROTOTYPE;
-   m_wgtChkPrototype->setCheckState(b ? Qt::Checked : Qt::Unchecked);
+   bool isProto = pObj->type() == EptObject::PROTOTYPE;
+   m_wgtChkPrototype->setCheckState(isProto ? Qt::Checked : Qt::Unchecked);
+
+   const Vec2i& seg = pObj->segment();
+   if (seg == Vec2i(-1, -1)) {
+      m_wgtChkGlobal->setCheckState(Qt::Checked);
+   }
+   else {
+      m_wgtChkGlobal->setCheckState(Qt::Unchecked);
+      m_wgtSpnSegmentX->setValue(seg.x);
+      m_wgtSpnSegmentY->setValue(seg.y);
+   }
 }
 
 //===========================================
@@ -416,6 +603,10 @@ void MainWindow::updateAssetList_r(QTreeWidgetItem* parent, weak_ptr<EptObject> 
 
       // Dependency doesn't exist (yet).
       if (!objDep) continue;
+
+      // TODO
+      // Object cannot link to itself
+      if (objDep == pObj) continue;
 
       QTreeWidgetItem* item = new QTreeWidgetItem(parent, QStringList(objDep->name()));
       parent->addChild(item);
