@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ASSETFILE>
 <assets>
-<asset assetId="2">
-	<thing a="3" b="4"/>
-	<fruit>
-		<banana size="large"/>
-	</fruit>
-	<animal assetId="0"/>
-</asset>
-
 </assets>
 </ASSETFILE>

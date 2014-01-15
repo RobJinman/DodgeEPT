@@ -21,7 +21,7 @@
 </settings>
 <customSettings/>
 <using>
-	<file>./export/leopardProto.xml</file>
+	<file>leopardProto.xml</file>
 </using>
 <assets>
 <asset assetId="3">

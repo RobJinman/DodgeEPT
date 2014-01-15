@@ -1,4 +1,5 @@
 #include <sstream>
+#include "Common.hpp"
 #include "EptObject.hpp"
 
 
@@ -22,16 +23,39 @@ EptObject::EptObject(const QString& name, type_t type)
 // EptObject::EptObject
 //===========================================
 EptObject::EptObject(const XmlNode& node, type_t type)
-   : m_id(m_nextId++), m_type(type) {
+   : m_type(type) {
+
+   m_xml = shared_ptr<XmlDocument>(new XmlDocument);
+
+   XML_NODE_CHECK(node, asset);
+
+   bool idSet = false;
+   XmlAttribute attr = node.firstAttribute();
+   while (!attr.isNull()) {
+      if (attr.name().compare("assetId") == 0) {
+         m_id = attr.getLong();
+         idSet = true;
+      }
+
+      attr = attr.nextAttribute();
+   }
+
+   m_xml->addNode(node);
+
+   if (!idSet) {
+      m_id = m_nextId++;
+   }
+   else {
+      if (m_id >= m_nextId) m_nextId = m_id + 1;
+   }
 
    stringstream ss;
    ss << "asset" << m_id;
 
    m_name = QString(ss.str().data());
-   m_xml = shared_ptr<XmlDocument>(new XmlDocument);
 
-   XML_NODE_CHECK(node, asset);
-   m_xml->addNode(node);
+   if (!idSet)
+      EXCEPTION("Error constructing EptObject; Expected 'assetId' attribute");
 }
 
 //===========================================

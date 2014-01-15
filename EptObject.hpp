@@ -40,6 +40,8 @@ class EptObject {
       void computeDependencies();
 
    private:
+      EptObject(const EptObject&) { assert(false); }
+
       void computeDependencies_r(const Dodge::XmlNode& node, int depth = 0);
 
       long m_id;

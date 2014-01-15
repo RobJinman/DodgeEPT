@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ASSETFILE>
 <assets>
+<asset assetId="3">
+	<thing a="34" b="12"/>
+	<fruit>
+		<orange size="small"/>
+	</fruit>
+	<animal assetId="0"/>
+</asset>
+
+<asset assetId="1">
+	<thing a="1" b="2"/>
+	<fruit>
+		<banana size="medium"/>
+	</fruit>
+	<animal assetId="0"/>
+</asset>
+
+<asset assetId="2">
+	<thing a="3" b="4"/>
+	<fruit>
+		<banana size="large"/>
+	</fruit>
+	<animal assetId="0"/>
+</asset>
+
 <asset assetId="0">
 	<animal type="leopard">
 		<legs>4</legs>

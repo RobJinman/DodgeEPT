@@ -21,16 +21,8 @@
 </settings>
 <customSettings/>
 <using>
-	<file>./export/leopardProto.xml</file>
+	<file>leopardProto.xml</file>
 </using>
-<assets>
-<asset assetId="3">
-	<thing a="34" b="12"/>
-	<fruit>
-		<orange size="small"/>
-	</fruit>
-	<animal assetId="0"/>
-</asset>
-</assets>
+<assets/>
 
 </MAPFILE>

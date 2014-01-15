@@ -35,8 +35,6 @@ using namespace Dodge;
 MainWindow::MainWindow(QWidget* parent)
    : QMainWindow(parent) {
 
-   m_root = "./export";
-
    resize(600, 400);
    setWindowTitle("Dodge :: Entity Placement Tool");
 
@@ -188,14 +186,17 @@ MainWindow::MainWindow(QWidget* parent)
 void MainWindow::importAssets() {
    const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
 
+   string importPath("./import"); // TODO
+
    for (unsigned int i = 0; i < settings.includes.size(); ++i) {
-      string path(settings.includes[i].toLocal8Bit().data());
+      stringstream path;
+      path << importPath << "/" << settings.includes[i].toLocal8Bit().data();
 
       try {
-         shared_ptr<XmlDocument> doc(new XmlDocument);
-         doc->parse(path);
+         XmlDocument doc;
+         doc.parse(path.str());
 
-         XmlNode node = doc->firstNode();
+         XmlNode node = doc.firstNode();
          node = node.nextSibling();
          XML_NODE_CHECK(node, ASSETFILE);
 
@@ -218,6 +219,43 @@ void MainWindow::importAssets() {
          throw;
 
          continue;
+      }
+   }
+
+   const Vec2i& segs = settings.numSegments;
+
+   for (int i = 0; i < segs.x; ++i) {
+      for (int j = 0; j < segs.y; ++j) {
+         stringstream ss;
+         ss << importPath << "/" << settings.segmentsDir << "/" << i << j << ".xml";
+
+         try {
+            XmlDocument doc;
+            doc.parse(ss.str());
+
+            XmlNode node = doc.firstNode();
+            node = node.nextSibling();
+            XML_NODE_CHECK(node, ASSETFILE);
+
+            node = node.firstChild();
+            XML_NODE_CHECK(node, assets);
+
+            node = node.firstChild();
+            while (!node.isNull()) {
+               XML_NODE_CHECK(node, asset);
+
+               shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
+               m_objects.insert(ent);
+
+               node = node.nextSibling();
+            }
+         }
+         catch (XmlException&) {
+            // TODO
+            throw;
+
+            continue;
+         }
       }
    }
 }
@@ -278,6 +316,8 @@ void MainWindow::onMapSettingsChange() {
 void MainWindow::buildMapFile() {
    const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
 
+   string exportPath("./export"); // TODO
+
    auto objs = m_objects.get(-1, -1);
    for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
       auto ptr = iObj->lock();
@@ -288,12 +328,13 @@ void MainWindow::buildMapFile() {
 
    XmlDocument xml = settings.toXml();
 
-   string path = m_root + "/" + settings.fileName;
+   stringstream path;
+   path << exportPath << "/" << settings.fileName;
 
-   ofstream fout(path);
+   ofstream fout(path.str());
    if (!fout.good()) {
       fout.close();
-      EXCEPTION("Error opening file '" << path << "'");
+      EXCEPTION("Error opening file '" << path.str() << "'");
    }
 
    fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
@@ -310,12 +351,14 @@ void MainWindow::buildMapFile() {
 void MainWindow::exportPrototypes() {
    const ObjectContainer::wkPtrSet_t& objs = m_objects.get(EptObject::PROTOTYPE);
 
+   string exportPath("./export"); // TODO
+
    for (auto i = objs.begin(); i != objs.end(); ++i) {
       shared_ptr<EptObject> obj = i->lock();
       assert(obj);
 
       stringstream ss;
-      ss << m_root << "/" << obj->name().toLocal8Bit().data() << ".xml";
+      ss << exportPath << "/" << obj->name().toLocal8Bit().data() << ".xml";
 
       ofstream fout(ss.str());
       if (!fout.good()) {
@@ -345,14 +388,15 @@ void MainWindow::exportPrototypes() {
 // MainWindow::exportInstances
 //===========================================
 void MainWindow::exportInstances() {
-   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+   string exportPath("./export"); // TODO
 
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
    const Vec2i& segs = settings.numSegments;
 
    for (int i = 0; i < segs.x; ++i) {
       for (int j = 0; j < segs.y; ++j) {
          stringstream ss;
-         ss << m_root << "/" << settings.segmentsDir;
+         ss << exportPath << "/" << settings.segmentsDir;
 
          if (!createDir(ss.str()))
             EXCEPTION("Error creating directory '" << ss.str() << "'");

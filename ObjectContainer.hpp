@@ -78,6 +78,8 @@ class ObjectContainer {
       std::map<QString, std::weak_ptr<EptObject> > m_byName;
       std::vector<std::vector<wkPtrSet_t> > m_bySegment;
       wkPtrSet_t m_globals;
+
+      wkPtrSet_t m_nullSet;
 };
 
 inline ObjectContainer::iterator ObjectContainer::begin() {

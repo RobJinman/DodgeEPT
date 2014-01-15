@@ -64,7 +64,6 @@ class MainWindow : public QMainWindow {
 
       ObjectContainer            m_objects;
 
-      std::string                m_root;
       std::weak_ptr<EptObject>   m_current;
 
       dependencyGraph_t          m_dependencyGraph;

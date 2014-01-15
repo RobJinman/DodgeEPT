@@ -285,6 +285,15 @@ void WgtMapSettings::loadFromXml(weak_ptr<XmlDocument> doc, XmlNode& assets) {
 
    assets = node;
 
+   m_wgtSpnMapPositionX->blockSignals(true);
+   m_wgtSpnMapPositionY->blockSignals(true);
+   m_wgtSpnMapSizeW->blockSignals(true);
+   m_wgtSpnMapSizeH->blockSignals(true);
+   m_wgtSpnMapSegmentsQuantityW->blockSignals(true);
+   m_wgtSpnMapSegmentsQuantityH->blockSignals(true);
+   m_wgtSpnMapSegmentsSizeW->blockSignals(true);
+   m_wgtSpnMapSegmentsSizeH->blockSignals(true);
+
    m_wgtSpnMapPositionX->setValue(m_mapSettings.boundary.getPosition().x);
    m_wgtSpnMapPositionY->setValue(m_mapSettings.boundary.getPosition().y);
    m_wgtSpnMapSizeW->setValue(m_mapSettings.boundary.getSize().x);
@@ -293,6 +302,17 @@ void WgtMapSettings::loadFromXml(weak_ptr<XmlDocument> doc, XmlNode& assets) {
    m_wgtSpnMapSegmentsQuantityH->setValue(m_mapSettings.numSegments.y);
    m_wgtSpnMapSegmentsSizeW->setValue(m_mapSettings.segmentSize.x);
    m_wgtSpnMapSegmentsSizeH->setValue(m_mapSettings.segmentSize.y);
+
+   m_wgtSpnMapPositionX->blockSignals(false);
+   m_wgtSpnMapPositionY->blockSignals(false);
+   m_wgtSpnMapSizeW->blockSignals(false);
+   m_wgtSpnMapSizeH->blockSignals(false);
+   m_wgtSpnMapSegmentsQuantityW->blockSignals(false);
+   m_wgtSpnMapSegmentsQuantityH->blockSignals(false);
+   m_wgtSpnMapSegmentsSizeW->blockSignals(false);
+   m_wgtSpnMapSegmentsSizeH->blockSignals(false);
+
+   emit changed();
 }
 
 //===========================================

@@ -61,8 +61,8 @@ const ObjectContainer::wkPtrSet_t& ObjectContainer::get(int i, int j) const {
    if (i == -1 && j == -1) return m_globals;
    if (i < 0) EXCEPTION("Index out of range");
    if (j < 0) EXCEPTION("Index out of range");
-   if (i >= static_cast<int>(m_bySegment.size())) EXCEPTION("Index out of range");
-   if (j >= static_cast<int>(m_bySegment[i].size())) EXCEPTION("Index out of range");
+   if (i >= static_cast<int>(m_bySegment.size()) || j >= static_cast<int>(m_bySegment[i].size()))
+      return m_nullSet;
 
    return m_bySegment[i][j];
 }
