@@ -4,25 +4,7 @@
 
 #include <memory>
 #include <QWidget>
-#include <vector>
-#include <dodge/Range.hpp>
-#include <dodge/math/Vec2i.hpp>
-
-
-class MapSettings {
-   public:
-      Dodge::Range boundary;
-      Dodge::Vec2i numSegments;
-      Dodge::Vec2f segmentSize;
-      std::string fileName;
-      std::string segmentsDir;
-      std::vector<QString> includes;
-      std::vector<std::weak_ptr<Dodge::XmlDocument> > assets;
-
-      void loadSettingsFromXml(Dodge::XmlNode node);
-      void loadIncludesFromXml(Dodge::XmlNode node);
-      Dodge::XmlDocument toXml() const;
-};
+#include "MapSettings.hpp"
 
 
 class QGroupBox;

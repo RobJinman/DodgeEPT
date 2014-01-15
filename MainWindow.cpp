@@ -23,6 +23,8 @@
 #include "WgtXmlTreeView.hpp"
 #include "WgtMapSettings.hpp"
 #include "Common.hpp"
+#include "Importer.hpp"
+#include "Exporter.hpp"
 
 
 using namespace std;
@@ -181,123 +183,22 @@ MainWindow::MainWindow(QWidget* parent)
 }
 
 //===========================================
-// MainWindow::importAssets
-//===========================================
-void MainWindow::importAssets() {
-   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
-
-   string importPath("./import"); // TODO
-
-   for (unsigned int i = 0; i < settings.includes.size(); ++i) {
-      stringstream path;
-      path << importPath << "/" << settings.includes[i].toLocal8Bit().data();
-
-      try {
-         XmlDocument doc;
-         doc.parse(path.str());
-
-         XmlNode node = doc.firstNode();
-         node = node.nextSibling();
-         XML_NODE_CHECK(node, ASSETFILE);
-
-         node = node.firstChild();
-         XML_NODE_CHECK(node, assets);
-
-         node = node.firstChild();
-
-         while (!node.isNull()) {
-            XML_NODE_CHECK(node, asset);
-
-            shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
-            m_objects.insert(ent);
-
-            node = node.nextSibling();
-         }
-      }
-      catch (XmlException&) {
-         // TODO
-         throw;
-
-         continue;
-      }
-   }
-
-   const Vec2i& segs = settings.numSegments;
-
-   for (int i = 0; i < segs.x; ++i) {
-      for (int j = 0; j < segs.y; ++j) {
-         stringstream ss;
-         ss << importPath << "/" << settings.segmentsDir << "/" << i << j << ".xml";
-
-         try {
-            XmlDocument doc;
-            doc.parse(ss.str());
-
-            XmlNode node = doc.firstNode();
-            node = node.nextSibling();
-            XML_NODE_CHECK(node, ASSETFILE);
-
-            node = node.firstChild();
-            XML_NODE_CHECK(node, assets);
-
-            node = node.firstChild();
-            while (!node.isNull()) {
-               XML_NODE_CHECK(node, asset);
-
-               shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
-               m_objects.insert(ent);
-
-               node = node.nextSibling();
-            }
-         }
-         catch (XmlException&) {
-            // TODO
-            throw;
-
-            continue;
-         }
-      }
-   }
-}
-
-//===========================================
 // MainWindow::onImport
 //===========================================
 void MainWindow::onImport() {
-   string importPath("./import/map0.xml"); // TODO
+   string importPath("./import"); // TODO
+   string mapFilePath = importPath + "/map0.xml"; // TODO
 
    shared_ptr<XmlDocument> doc(new XmlDocument);
-   doc->parse(importPath);
+   doc->parse(mapFilePath);
 
    XmlNode assets;
    m_wgtMapSettingsTab->loadFromXml(doc, assets);
 
-   XML_NODE_CHECK(assets, assets);
-   XmlNode node = assets.firstChild();
+   m_importer = unique_ptr<Importer>(new Importer(importPath));
+   m_importer->import(assets, m_wgtMapSettingsTab->mapSettings(), m_objects);
 
-   shared_ptr<EptObject> ent;
-
-   while (!node.isNull()) {
-      XML_NODE_CHECK(node, asset);
-
-      ent = shared_ptr<EptObject>(new EptObject(node, EptObject::INSTANCE));
-      m_objects.insert(ent);
-
-      node = node.nextSibling();
-   }
-
-   importAssets();
-
-   for (auto i = m_objects.begin(); i != m_objects.end(); ++i) {
-      auto obj = i->lock();
-      assert(obj);
-
-      obj->computeDependencies();
-   }
-
-   if (ent) {
-      updateAssetList(ent->name());
-   }
+   updateAssetList("");
 }
 
 //===========================================
@@ -628,10 +529,13 @@ void MainWindow::updateAssetList(const QString& select) {
    }
 
    QList<QTreeWidgetItem*> items = m_wgtTreAssets->findItems(select, 0, 0);
-   assert(items.size() == 1);
 
-   m_wgtTreAssets->setCurrentItem(items[0]);
-   onAssetSelection(items[0], 0);
+   if (items.size() > 0) {
+      assert(items.size() == 1);
+
+      m_wgtTreAssets->setCurrentItem(items[0]);
+      onAssetSelection(items[0], 0);
+   }
 }
 
 //===========================================

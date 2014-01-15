@@ -27,6 +27,8 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class WgtXmlTreeView;
 class WgtMapSettings;
+class Importer;
+class Exporter;
 
 
 class MainWindow : public QMainWindow {
@@ -52,9 +54,6 @@ class MainWindow : public QMainWindow {
       void onMapSettingsChange();
 
    private:
-      typedef std::map<long, std::vector<long> > dependencyGraph_t;
-
-      void importAssets();
       void buildMapFile();
       void exportPrototypes();
       void exportInstances();
@@ -62,11 +61,10 @@ class MainWindow : public QMainWindow {
       void updateAssetList(const QString& select);
       void updateAssetList_r(QTreeWidgetItem* parent, std::weak_ptr<EptObject> obj);
 
+      std::unique_ptr<Importer>  m_importer;
+      std::unique_ptr<Exporter>  m_exporter;
       ObjectContainer            m_objects;
-
       std::weak_ptr<EptObject>   m_current;
-
-      dependencyGraph_t          m_dependencyGraph;
 
       QMenu*                     m_mnuFile;
       QAction*                   m_actSave;
