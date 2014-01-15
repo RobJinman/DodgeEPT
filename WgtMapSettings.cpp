@@ -14,142 +14,6 @@ using namespace Dodge;
 
 
 //===========================================
-// MapSettings::loadSettingsFromXml
-//===========================================
-void MapSettings::loadSettingsFromXml(XmlNode node) {
-   // <settings>
-   //   <boundary>
-   //     <Range>
-   //       <pos>
-   //         <Vec2f/>
-   //       </pos>
-   //       <size>
-   //         <Vec2f/>
-   //       </size>
-   //     </Range>
-   //   </boundary>
-   //   <numSegments>
-   //     <Vec2i/>
-   //   </numSegments>
-   //   <segmentSize>
-   //     <Vec2f/>
-   //   </segmentSize>
-   //   <segmentsDir/>
-   // </settings>
-
-   XML_NODE_CHECK(node, settings);
-
-   node = node.firstChild();
-   XML_NODE_CHECK(node, boundary);
-
-   boundary = Range(node.firstChild());
-
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, numSegments);
-   numSegments = Vec2i(node.firstChild());
-
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, segmentSize);
-   segmentSize = Vec2f(node.firstChild());
-
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, segmentsDir);
-   segmentsDir = node.getString();
-}
-
-//===========================================
-// MapSettings::loadIncludesFromXml
-//===========================================
-void MapSettings::loadIncludesFromXml(XmlNode node) {
-   includes.clear();
-
-   XML_NODE_CHECK(node, using);
-
-   node = node.firstChild();
-   while (!node.isNull()) {
-      XML_NODE_CHECK(node, file);
-
-      includes.push_back(QString(node.getString().data()));
-
-      node = node.nextSibling();
-   }
-}
-
-//===========================================
-// MapSettings::toXml
-//===========================================
-XmlDocument MapSettings::toXml() const {
-   XmlDocument doc;
-
-   stringstream ss;
-
-   XmlNode settings = doc.addNode("settings");
-      XmlNode boundary = settings.addNode("boundary");
-         XmlNode range = boundary.addNode("Range");
-            XmlNode pos = range.addNode("pos");
-               XmlNode brp_vec2f = pos.addNode("Vec2f");
-                  ss.str("");
-                  ss << this->boundary.getPosition().x;
-
-                  brp_vec2f.addAttribute("x", ss.str().data());
-
-                  ss.str("");
-                  ss << this->boundary.getPosition().y;
-
-                  brp_vec2f.addAttribute("y", ss.str().data());
-            XmlNode size = range.addNode("size");
-               XmlNode brs_vec2f = size.addNode("Vec2f");
-                  ss.str("");
-                  ss << this->boundary.getSize().x;
-
-                  brs_vec2f.addAttribute("x", ss.str().data());
-
-                  ss.str("");
-                  ss << this->boundary.getSize().y;
-
-                  brs_vec2f.addAttribute("y", ss.str().data());
-      XmlNode numSegments = settings.addNode("numSegments");
-         XmlNode ns_vec2i = numSegments.addNode("Vec2i");
-            ss.str("");
-            ss << this->numSegments.x;
-
-            ns_vec2i.addAttribute("x", ss.str().data());
-
-            ss.str("");
-            ss << this->numSegments.y;
-
-            ns_vec2i.addAttribute("y", ss.str().data());
-      XmlNode segmentSize = settings.addNode("segmentSize");
-         XmlNode ss_vec2f = segmentSize.addNode("Vec2f");
-            ss.str("");
-            ss << this->segmentSize.x;
-
-            ss_vec2f.addAttribute("x", ss.str().data());
-
-            ss.str("");
-            ss << this->segmentSize.y;
-
-            ss_vec2f.addAttribute("y", ss.str().data());
-      XmlNode segmentsDir = settings.addNode("segmentsDir");
-         segmentsDir.setValue("data/xml/0"); // TODO
-   XmlNode customSettings = doc.addNode("customSettings");
-   XmlNode using_ = doc.addNode("using");
-      for (unsigned int i = 0; i < includes.size(); ++i) {
-         XmlNode file = using_.addNode("file");
-         file.setValue(includes[i].toLocal8Bit().data());
-      }
-   XmlNode assets = doc.addNode("assets");
-      for (unsigned int i = 0; i < this->assets.size(); ++i) {
-         auto xml = this->assets[i].lock();
-         assert(xml);
-
-         assets.addNode(xml->firstNode());
-      }
-
-   return doc;
-}
-
-//===========================================
 // WgtMapSettings::WgtMapSettings
 //===========================================
 WgtMapSettings::WgtMapSettings(QWidget* parent)
@@ -244,47 +108,9 @@ void WgtMapSettings::onChange(double) {
 }
 
 //===========================================
-// WgtMapSettings::addTopLevelAsset
+// WgtMapSettings::update
 //===========================================
-void WgtMapSettings::addTopLevelAsset(const EptObject& obj) {
-   m_mapSettings.assets.push_back(obj.xml());
-}
-
-//===========================================
-// WgtMapSettings::addFileDependency
-//===========================================
-void WgtMapSettings::addFileDependency(const QString& path) {
-   m_mapSettings.includes.push_back(path);
-}
-
-//===========================================
-// WgtMapSettings::loadFromXml
-//===========================================
-void WgtMapSettings::loadFromXml(weak_ptr<XmlDocument> doc, XmlNode& assets) {
-   // <settings/>
-   // <customSettings/>
-   // <using/>
-   // <assets/>
-
-   auto pDoc = doc.lock();
-   assert(pDoc);
-
-   XmlNode node = pDoc->firstNode();
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, MAPFILE);
-
-   node = node.firstChild();
-   m_mapSettings.loadSettingsFromXml(node);
-
-   node = node.nextSibling(); // customSettings
-   node = node.nextSibling();
-   m_mapSettings.loadIncludesFromXml(node);
-
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, assets);
-
-   assets = node;
-
+void WgtMapSettings::update() {
    m_wgtSpnMapPositionX->blockSignals(true);
    m_wgtSpnMapPositionY->blockSignals(true);
    m_wgtSpnMapSizeW->blockSignals(true);
@@ -318,7 +144,7 @@ void WgtMapSettings::loadFromXml(weak_ptr<XmlDocument> doc, XmlNode& assets) {
 //===========================================
 // WgtMapSettings::mapSettings
 //===========================================
-const MapSettings& WgtMapSettings::mapSettings() const {
+MapSettings& WgtMapSettings::mapSettings() {
    m_mapSettings.boundary.setPosition(m_wgtSpnMapPositionX->value(), m_wgtSpnMapPositionY->value());
    m_mapSettings.boundary.setSize(m_wgtSpnMapSizeW->value(), m_wgtSpnMapSizeH->value());
    m_mapSettings.numSegments.x = m_wgtSpnMapSegmentsQuantityW->value();

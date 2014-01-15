@@ -1,36 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <MAPFILE>
-<settings>
-	<boundary>
-		<Range>
-			<pos>
-				<Vec2f x="0" y="0"/>
-			</pos>
-			<size>
-				<Vec2f x="0" y="0"/>
-			</size>
-		</Range>
-	</boundary>
-	<numSegments>
-		<Vec2i x="3" y="2"/>
-	</numSegments>
-	<segmentSize>
-		<Vec2f x="0" y="0"/>
-	</segmentSize>
-	<segmentsDir>data/xml/0</segmentsDir>
-</settings>
-<customSettings/>
-<using>
-	<file>leopardProto.xml</file>
-</using>
-<assets>
-<asset assetId="3">
-	<thing a="34" b="12"/>
-	<fruit>
-		<orange size="small"/>
-	</fruit>
-	<animal assetId="0"/>
-</asset>
-</assets>
-
+   <settings>
+      <boundary>
+         <Range>
+            <pos><Vec2f x="0.0" y="0.0"/></pos>
+            <size><Vec2f x="2.6" y="1.4"/></size>
+         </Range>
+      </boundary>
+      <numSegments><Vec2i x="1" y="1"/></numSegments>
+      <segmentSize><Vec2f x="2.6" y="1.4"/></segmentSize>
+      <segmentsDir>0</segmentsDir>
+   </settings>
+   <customSettings>
+      <bgColour><Colour r="0.075" g="0.05" b="0.02" a="1.0"/></bgColour>
+   </customSettings>
+   <using>
+      <file>player.xml</file>
+      <file>soil.xml</file>
+      <file>stopBlock.xml</file>
+      <file>stationaryPlatform.xml</file>
+      <file>movingPlatform.xml</file>
+   </using>
+   <assets>
+      <asset assetId="111"><Texture path="data/textures/cave01.png"/></asset>
+      <asset assetId="99" protoId="10" addToWorld="true"><Player><PhysicalSprite><Sprite><Entity name="player" x="0.0" y="0.0" z="8"/></Sprite></PhysicalSprite></Player></asset>
+   </assets>
 </MAPFILE>

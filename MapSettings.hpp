@@ -18,11 +18,8 @@ class MapSettings {
       Dodge::Vec2f segmentSize;
       std::string fileName;
       std::string segmentsDir;
-      std::vector<QString> includes;
-      std::vector<std::weak_ptr<Dodge::XmlDocument> > assets;
 
-      void loadSettingsFromXml(Dodge::XmlNode node);
-      void loadIncludesFromXml(Dodge::XmlNode node);
+      void loadFromXml(Dodge::XmlNode node);
       Dodge::XmlDocument toXml() const;
 };
 

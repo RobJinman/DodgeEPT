@@ -187,17 +187,11 @@ MainWindow::MainWindow(QWidget* parent)
 //===========================================
 void MainWindow::onImport() {
    string importPath("./import"); // TODO
-   string mapFilePath = importPath + "/map0.xml"; // TODO
-
-   shared_ptr<XmlDocument> doc(new XmlDocument);
-   doc->parse(mapFilePath);
-
-   XmlNode assets;
-   m_wgtMapSettingsTab->loadFromXml(doc, assets);
 
    m_importer = unique_ptr<Importer>(new Importer(importPath));
-   m_importer->import(assets, m_wgtMapSettingsTab->mapSettings(), m_objects);
+   m_importer->import(m_wgtMapSettingsTab->mapSettings(), m_objects);
 
+   m_wgtMapSettingsTab->update();
    updateAssetList("");
 }
 
@@ -212,137 +206,11 @@ void MainWindow::onMapSettingsChange() {
 }
 
 //===========================================
-// MainWindow::buildMapFile
-//===========================================
-void MainWindow::buildMapFile() {
-   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
-
-   string exportPath("./export"); // TODO
-
-   auto objs = m_objects.get(-1, -1);
-   for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
-      auto ptr = iObj->lock();
-      assert(ptr);
-
-      m_wgtMapSettingsTab->addTopLevelAsset(*ptr);
-   }
-
-   XmlDocument xml = settings.toXml();
-
-   stringstream path;
-   path << exportPath << "/" << settings.fileName;
-
-   ofstream fout(path.str());
-   if (!fout.good()) {
-      fout.close();
-      EXCEPTION("Error opening file '" << path.str() << "'");
-   }
-
-   fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-   fout << "<MAPFILE>\n";
-   xml.print(fout);
-   fout << "</MAPFILE>\n";
-
-   fout.close();
-}
-
-//===========================================
-// MainWindow::exportPrototypes
-//===========================================
-void MainWindow::exportPrototypes() {
-   const ObjectContainer::wkPtrSet_t& objs = m_objects.get(EptObject::PROTOTYPE);
-
-   string exportPath("./export"); // TODO
-
-   for (auto i = objs.begin(); i != objs.end(); ++i) {
-      shared_ptr<EptObject> obj = i->lock();
-      assert(obj);
-
-      stringstream ss;
-      ss << exportPath << "/" << obj->name().toLocal8Bit().data() << ".xml";
-
-      ofstream fout(ss.str());
-      if (!fout.good()) {
-         fout.close();
-         cerr << "Error writing to file '" << ss.str() << "'\n";
-
-         continue;
-      }
-
-      m_wgtMapSettingsTab->addFileDependency(QString(ss.str().data()));
-
-      auto xml = obj->xml().lock();
-      assert(xml);
-
-      fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-      fout << "<ASSETFILE>\n";
-      fout << "<assets>\n";
-      xml->print(fout);
-      fout << "</assets>\n";
-      fout << "</ASSETFILE>\n";
-
-      fout.close();
-   }
-}
-
-//===========================================
-// MainWindow::exportInstances
-//===========================================
-void MainWindow::exportInstances() {
-   string exportPath("./export"); // TODO
-
-   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
-   const Vec2i& segs = settings.numSegments;
-
-   for (int i = 0; i < segs.x; ++i) {
-      for (int j = 0; j < segs.y; ++j) {
-         stringstream ss;
-         ss << exportPath << "/" << settings.segmentsDir;
-
-         if (!createDir(ss.str()))
-            EXCEPTION("Error creating directory '" << ss.str() << "'");
-
-         ss << "/" << i << j << ".xml";
-
-         ofstream fout(ss.str());
-         if (!fout.good()) {
-            fout.close();
-            EXCEPTION("Error opening file '" << ss.str() << "'");
-         }
-
-         fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-         fout << "<ASSETFILE>\n";
-         fout << "<assets>\n";
-
-         auto objs = m_objects.get(i, j);
-
-         for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
-            auto obj = iObj->lock();
-            assert(obj);
-
-            if (obj->type() == EptObject::PROTOTYPE) continue;
-
-            auto xml = obj->xml().lock();
-            assert(xml);
-
-            xml->print(fout);
-         }
-
-         fout << "</assets>\n";
-         fout << "</ASSETFILE>\n";
-
-         fout.close();
-      }
-   }
-}
-
-//===========================================
 // MainWindow::onExport
 //===========================================
 void MainWindow::onExport() {
-   exportPrototypes();
-   exportInstances();
-   buildMapFile();
+   m_exporter = unique_ptr<Exporter>(new Exporter("./export")); // TODO
+   m_exporter->export_(m_wgtMapSettingsTab->mapSettings(), m_objects);
 }
 
 //===========================================

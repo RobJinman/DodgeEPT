@@ -3,6 +3,7 @@
 
 
 #include <string>
+#include <vector>
 #include <dodge/xml/xml.hpp>
 
 
@@ -13,10 +14,10 @@ class Importer {
    public:
       Importer(const std::string& path);
 
-      void import(const Dodge::XmlNode& assets, const MapSettings& settings, ObjectContainer& objects);
+      void import(MapSettings& settings, ObjectContainer& objects);
 
    private:
-      void importAssets(const MapSettings& settings, ObjectContainer& objects);
+      void importAssets(const MapSettings& settings, const std::vector<std::string>& includes, ObjectContainer& objects);
 
       std::string m_path;
 };

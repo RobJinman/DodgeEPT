@@ -19,12 +19,9 @@ class WgtMapSettings : public QWidget {
    public:
       WgtMapSettings(QWidget* parent = NULL);
 
-      void loadFromXml(std::weak_ptr<Dodge::XmlDocument> doc, Dodge::XmlNode& assets);
+      void update();
 
-      void addTopLevelAsset(const EptObject& obj);
-      void addFileDependency(const QString& path);
-
-      const MapSettings& mapSettings() const;
+      MapSettings& mapSettings();
 
    private slots:
       void onChange(int);

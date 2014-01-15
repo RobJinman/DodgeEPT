@@ -17,12 +17,20 @@
 	<segmentSize>
 		<Vec2f x="0" y="0"/>
 	</segmentSize>
-	<segmentsDir>data/xml/0</segmentsDir>
+	<segmentsDir>0</segmentsDir>
 </settings>
 <customSettings/>
 <using>
 	<file>leopardProto.xml</file>
 </using>
-<assets/>
+<assets>
+<asset assetId="3">
+	<thing a="34" b="12"/>
+	<fruit>
+		<orange size="small"/>
+	</fruit>
+	<animal assetId="0"/>
+</asset>
+</assets>
 
 </MAPFILE>

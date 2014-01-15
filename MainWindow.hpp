@@ -54,9 +54,6 @@ class MainWindow : public QMainWindow {
       void onMapSettingsChange();
 
    private:
-      void buildMapFile();
-      void exportPrototypes();
-      void exportInstances();
       void computeDependencies();
       void updateAssetList(const QString& select);
       void updateAssetList_r(QTreeWidgetItem* parent, std::weak_ptr<EptObject> obj);

@@ -17,20 +17,55 @@ Importer::Importer(const std::string& path)
 //===========================================
 // Importer::import
 //===========================================
-void Importer::import(const XmlNode& assets, const MapSettings& settings, ObjectContainer& objects) {
-   XML_NODE_CHECK(assets, assets);
-   XmlNode node = assets.firstChild();
+void Importer::import(MapSettings& settings, ObjectContainer& objects) {
+   string mapFilePath = m_path + "/" + settings.fileName;
 
-   while (!node.isNull()) {
-      XML_NODE_CHECK(node, asset);
+   shared_ptr<XmlDocument> doc(new XmlDocument);
+   doc->parse(mapFilePath);
 
-      shared_ptr<EptObject> ent = shared_ptr<EptObject>(new EptObject(node, EptObject::INSTANCE));
-      objects.insert(ent);
+   // <settings/>
+   // <customSettings/>
+   // <using/>
+   // <assets/>
 
-      node = node.nextSibling();
+   XmlNode node = doc->firstNode();
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, MAPFILE);
+
+   node = node.firstChild();
+   settings.loadFromXml(node);
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, customSettings);
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, using);
+
+   vector<string> includes;
+
+   XmlNode node_ = node.firstChild();
+   while (!node_.isNull()) {
+      XML_NODE_CHECK(node_, file);
+
+      includes.push_back(node_.getString());
+
+      node_ = node_.nextSibling();
    }
 
-   importAssets(settings, objects);
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, assets);
+
+   node_ = node.firstChild();
+   while (!node_.isNull()) {
+      XML_NODE_CHECK(node_, asset);
+
+      shared_ptr<EptObject> ent = shared_ptr<EptObject>(new EptObject(node_, EptObject::INSTANCE));
+      objects.insert(ent);
+
+      node_ = node_.nextSibling();
+   }
+
+   importAssets(settings, includes, objects);
 
    for (auto i = objects.begin(); i != objects.end(); ++i) {
       auto obj = i->lock();
@@ -43,10 +78,10 @@ void Importer::import(const XmlNode& assets, const MapSettings& settings, Object
 //===========================================
 // Importer::importAssets
 //===========================================
-void Importer::importAssets(const MapSettings& settings, ObjectContainer& objects) {
-   for (unsigned int i = 0; i < settings.includes.size(); ++i) {
+void Importer::importAssets(const MapSettings& settings, const vector<string>& includes, ObjectContainer& objects) {
+   for (unsigned int i = 0; i < includes.size(); ++i) {
       stringstream path;
-      path << m_path << "/" << settings.includes[i].toLocal8Bit().data();
+      path << m_path << "/" << includes[i];
 
       try {
          XmlDocument doc;
