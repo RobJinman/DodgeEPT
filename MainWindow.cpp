@@ -19,6 +19,7 @@
 #include <QDoubleSpinBox>
 #include <QTreeWidget>
 #include <QCheckBox>
+#include <QFileDialog>
 #include "MainWindow.hpp"
 #include "WgtXmlTreeView.hpp"
 #include "WgtMapSettings.hpp"
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget* parent)
    resize(600, 400);
    setWindowTitle("Dodge :: Entity Placement Tool");
 
+   m_actOpen = new QAction("Open", this);
    m_actSave = new QAction("Save", this);
    m_actSaveAs = new QAction("Save As", this);
    m_actImport = new QAction("Import", this);
@@ -47,6 +49,7 @@ MainWindow::MainWindow(QWidget* parent)
    m_actQuit = new QAction("Quit", this);
 
    m_mnuFile = menuBar()->addMenu("File");
+   m_mnuFile->addAction(m_actOpen);
    m_mnuFile->addAction(m_actSave);
    m_mnuFile->addAction(m_actSaveAs);
    m_mnuFile->addAction(m_actImport);
@@ -168,6 +171,9 @@ MainWindow::MainWindow(QWidget* parent)
    mainLayout->addWidget(m_wgtRightColumnTabs, 3);
 
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
+   connect(m_actOpen, SIGNAL(triggered()), this, SLOT(onOpen()));
+   connect(m_actSave, SIGNAL(triggered()), this, SLOT(onSave()));
+   connect(m_actSaveAs, SIGNAL(triggered()), this, SLOT(onSaveAs()));
    connect(m_actImport, SIGNAL(triggered()), this, SLOT(onImport()));
    connect(m_actExport, SIGNAL(triggered()), this, SLOT(onExport()));
    connect(m_wgtXmlApply, SIGNAL(released()), this, SLOT(btnApplyClick()));
@@ -180,6 +186,170 @@ MainWindow::MainWindow(QWidget* parent)
    connect(m_wgtSpnSegmentX, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentXChanged(int)));
    connect(m_wgtSpnSegmentY, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentYChanged(int)));
    connect(m_wgtMapSettingsTab, SIGNAL(changed()), this, SLOT(onMapSettingsChange()));
+   connect(m_wgtTreAssets, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(onObjectNameChange(QTreeWidgetItem*, int)));
+}
+
+//===========================================
+// MainWindow::onOpen
+//===========================================
+void MainWindow::onOpen() {
+   QString qPath = QFileDialog::getOpenFileName(this, "Choose a file to open", "/home", "EPT files (*.ept)");
+   string path(qPath.toLocal8Bit().data());
+
+   int i = static_cast<int>(path.length()) - 1;
+   for (; i >= 0; --i) {
+      if (path[i] == '/' || path[i] == '\'') break;
+   }
+
+   m_objects.clear();
+
+   m_rootPath = path.substr(0, i);
+   m_projFilePath = path.substr(i + 1, path.length() - i - 1);
+   m_assetsPath = "assets";
+
+   m_importer = unique_ptr<Importer>(new Importer(m_rootPath + "/" + m_assetsPath));
+   m_importer->import(m_wgtMapSettingsTab->mapSettings(), m_objects);
+
+   loadProjectFile();
+
+   m_wgtMapSettingsTab->update();
+   updateAssetList("");
+   updatePrototypesCombo();
+}
+
+//===========================================
+// MainWindow::loadProjectFile
+//===========================================
+void MainWindow::loadProjectFile() {
+   XmlDocument xml;
+   try {
+      xml.parse(m_rootPath + "/" + m_projFilePath);
+   }
+   catch (XmlException& e) {
+      EXCEPTION("Error loading project file '" << m_rootPath + "/" + m_projFilePath << "'; " << e.what());
+   }
+
+   XmlNode settings = xml.firstNode();
+   XML_NODE_CHECK(settings, settings);
+
+   XmlNode assets = settings.nextSibling();
+   XML_NODE_CHECK(assets, assets);
+
+   XmlNode asset = assets.firstChild();
+   while (!asset.isNull()) {
+      XmlAttribute attr = asset.firstAttribute();
+      XML_ATTR_CHECK(attr, id);
+
+      long id = attr.getLong();
+      shared_ptr<EptObject> obj = m_objects.get(id).lock();
+      if (!obj) {
+         // TODO: Error!
+         continue;
+      }
+
+      attr = attr.nextAttribute();
+      XML_ATTR_CHECK(attr, type);
+
+      EptObject::type_t type;
+      string strType = attr.getString();
+
+      if (strType.compare("instance") == 0)
+         type = EptObject::INSTANCE;
+      else if (strType.compare("prototype") == 0)
+         type = EptObject::PROTOTYPE;
+      else {
+         // TODO Error!
+         continue;
+      }
+
+      m_objects.changeType(id, type);
+
+      attr = attr.nextAttribute();
+      XML_ATTR_CHECK(attr, name);
+
+      string strName = attr.getString();
+      QString qName(strName.data());
+
+      m_objects.changeName(id, qName);
+
+      asset = asset.nextSibling();
+   }
+}
+
+//===========================================
+// MainWindow::writeProjectFile
+//===========================================
+void MainWindow::writeProjectFile() {
+   XmlDocument xml;
+
+   XmlNode settings = xml.addNode("settings");
+   XmlNode assets = xml.addNode("assets");
+
+   for (auto i = m_objects.begin(); i != m_objects.end(); ++i) {
+      auto obj = i->lock();
+      assert(obj);
+
+      XmlNode asset = assets.addNode("asset");
+
+      stringstream ss;
+      ss << obj->id();
+
+      asset.addAttribute("id", ss.str());
+
+      switch (obj->type()) {
+         case EptObject::INSTANCE:
+            asset.addAttribute("type", "instance");
+         break;
+         case EptObject::PROTOTYPE:
+            asset.addAttribute("type", "prototype");
+         break;
+         default: assert(false);
+      }
+
+      asset.addAttribute("name", obj->name().toLocal8Bit().data());
+   }
+
+   ofstream fout(m_projFilePath);
+   if (!fout.good()) {
+      fout.close();
+      EXCEPTION("Error writing project file '" << m_projFilePath << "'");
+   }
+
+   xml.print(fout);
+
+   fout.close();
+}
+
+//===========================================
+// MainWindow::onSave
+//===========================================
+void MainWindow::onSave() {
+   if (m_projFilePath.length() == 0)
+      onSaveAs();
+
+   writeProjectFile();
+}
+
+//===========================================
+// MainWindow::onSaveAs
+//===========================================
+void MainWindow::onSaveAs() {
+   QString path = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   m_rootPath = string(path.toLocal8Bit().data());
+
+   m_projFilePath = "project.ept";
+   m_assetsPath = "assets";
+
+   writeProjectFile();
+}
+
+//===========================================
+// MainWindow::copyAssets
+//===========================================
+void MainWindow::copyAssets() {
+   createDir(m_rootPath + "/" + m_assetsPath);
+
+   // TODO
 }
 
 //===========================================
@@ -193,6 +363,7 @@ void MainWindow::onImport() {
 
    m_wgtMapSettingsTab->update();
    updateAssetList("");
+   updatePrototypesCombo();
 }
 
 //===========================================
@@ -267,6 +438,22 @@ void MainWindow::onChkGlobalChanged(int state) {
 }
 
 //===========================================
+// MainWindow::updatePrototypesCombo
+//===========================================
+void MainWindow::updatePrototypesCombo() {
+   m_wgtCboPrototypes->clear();
+
+   auto objs = m_objects.get(EptObject::PROTOTYPE);
+
+   for (auto i = objs.begin(); i != objs.end(); ++i) {
+      auto obj = i->lock();
+      assert(obj);
+
+      m_wgtCboPrototypes->addItem(obj->name());
+   }
+}
+
+//===========================================
 // MainWindow::onChkPrototypeChanged
 //===========================================
 void MainWindow::onChkPrototypeChanged(int state) {
@@ -282,12 +469,12 @@ void MainWindow::onChkPrototypeChanged(int state) {
 
    switch (state) {
       case Qt::Checked: {
-         m_objects.changeType(name, EptObject::PROTOTYPE);
+         m_objects.changeType(obj->id(), EptObject::PROTOTYPE);
          m_wgtCboPrototypes->addItem(name);
       }
       break;
       case Qt::Unchecked: {
-         m_objects.changeType(name, EptObject::INSTANCE);
+         m_objects.changeType(obj->id(), EptObject::INSTANCE);
       }
       break;
       default: assert(false);
@@ -299,6 +486,31 @@ void MainWindow::onChkPrototypeChanged(int state) {
 //===========================================
 void MainWindow::onPrototypeSelection(const QString& name) {
    // TODO
+}
+
+//===========================================
+// MainWindow::onObjectNameChange
+//===========================================
+void MainWindow::onObjectNameChange(QTreeWidgetItem* item, int) {
+   auto current = m_current.lock();
+   assert(current);
+
+   QString from = current->name();
+   QString to = item->text(0);
+
+   if (m_objects.contains(to)) {
+      alert("Asset already with that name");
+
+      m_wgtTreAssets->blockSignals(true);
+      item->setText(0, from);
+      m_wgtTreAssets->blockSignals(false);
+
+      return;
+   }
+
+   m_objects.changeName(current->id(), to);
+
+   updateAssetList(to);
 }
 
 //===========================================
@@ -384,6 +596,7 @@ void MainWindow::btnNewAssetClick() {
 // MainWindow::updateAssetList
 //===========================================
 void MainWindow::updateAssetList(const QString& select) {
+   m_wgtTreAssets->blockSignals(true);
    m_wgtTreAssets->clear();
 
    for (ObjectContainer::iterator i = m_objects.begin(); i != m_objects.end(); ++i) {
@@ -391,6 +604,7 @@ void MainWindow::updateAssetList(const QString& select) {
       const QString& name = obj->name();
 
       QTreeWidgetItem* item = new QTreeWidgetItem(m_wgtTreAssets, QStringList(name));
+      item->setFlags(item->flags() | Qt::ItemIsEditable);
 
       m_wgtTreAssets->addTopLevelItem(item);
       updateAssetList_r(item, obj);
@@ -404,6 +618,8 @@ void MainWindow::updateAssetList(const QString& select) {
       m_wgtTreAssets->setCurrentItem(items[0]);
       onAssetSelection(items[0], 0);
    }
+
+   m_wgtTreAssets->blockSignals(false);
 }
 
 //===========================================
@@ -425,6 +641,8 @@ void MainWindow::updateAssetList_r(QTreeWidgetItem* parent, weak_ptr<EptObject> 
       if (objDep == pObj) continue;
 
       QTreeWidgetItem* item = new QTreeWidgetItem(parent, QStringList(objDep->name()));
+      item->setFlags(item->flags() | Qt::ItemIsEditable);
+
       parent->addChild(item);
 
       updateAssetList_r(item, objDep);
@@ -453,16 +671,6 @@ void MainWindow::btnApplyClick() {
 
    m_wgtXmlTree->update(doc);
    updateAssetList(obj->name());
-}
-
-//===========================================
-// MainWindow::computeDependencies
-//===========================================
-void MainWindow::computeDependencies() {
-   for (ObjectContainer::iterator i = m_objects.begin(); i != m_objects.end(); ++i) {
-      // TODO
-      cout << i->lock()->name().toLocal8Bit().data() << "\n";
-   }
 }
 
 //===========================================

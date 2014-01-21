@@ -2,6 +2,7 @@
 #include "Importer.hpp"
 #include "MapSettings.hpp"
 #include "ObjectContainer.hpp"
+#include "Common.hpp"
 
 
 using namespace std;
@@ -18,6 +19,39 @@ Importer::Importer(const std::string& path)
 // Importer::import
 //===========================================
 void Importer::import(MapSettings& settings, ObjectContainer& objects) {
+   readMapFile(settings, objects);
+   importPrototypes(objects);
+   importSegments(settings, objects);
+
+   for (auto i = objects.begin(); i != objects.end(); ++i) {
+      auto obj = i->lock();
+      assert(obj);
+
+      obj->computeDependencies();
+   }
+}
+
+//===========================================
+// Importer::importPrototypes
+//===========================================
+void Importer::importPrototypes(ObjectContainer& objects) {
+   vector<string> files;
+   filesInDir(m_path, files);
+
+   for (unsigned int i = 0; i < files.size(); ++i) {
+      int l = files[i].length();
+
+      if (l < 4) continue;
+      if (files[i].substr(l - 4, 4).compare(".xml") != 0) continue;
+
+      readAssetFile(objects, m_path + "/" + files[i], EptObject::PROTOTYPE);
+   }
+}
+
+//===========================================
+// Importer::readMapFile
+//===========================================
+void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
    string mapFilePath = m_path + "/" + settings.fileName;
 
    shared_ptr<XmlDocument> doc(new XmlDocument);
@@ -41,21 +75,10 @@ void Importer::import(MapSettings& settings, ObjectContainer& objects) {
    node = node.nextSibling();
    XML_NODE_CHECK(node, using);
 
-   vector<string> includes;
-
-   XmlNode node_ = node.firstChild();
-   while (!node_.isNull()) {
-      XML_NODE_CHECK(node_, file);
-
-      includes.push_back(node_.getString());
-
-      node_ = node_.nextSibling();
-   }
-
    node = node.nextSibling();
    XML_NODE_CHECK(node, assets);
 
-   node_ = node.firstChild();
+   XmlNode node_ = node.firstChild();
    while (!node_.isNull()) {
       XML_NODE_CHECK(node_, asset);
 
@@ -64,55 +87,40 @@ void Importer::import(MapSettings& settings, ObjectContainer& objects) {
 
       node_ = node_.nextSibling();
    }
+}
 
-   importAssets(settings, includes, objects);
+//===========================================
+// Importer::readAssetFile
+//===========================================
+void Importer::readAssetFile(ObjectContainer& objects, const string& path, EptObject::type_t type) {
+   XmlDocument doc;
+   doc.parse(path);
 
-   for (auto i = objects.begin(); i != objects.end(); ++i) {
-      auto obj = i->lock();
-      assert(obj);
+   XmlNode node = doc.firstNode();
+   node = node.nextSibling();
+   if (node.isNull() || node.name() != "ASSETFILE") return;
 
-      obj->computeDependencies();
+   node = node.firstChild();
+   XML_NODE_CHECK(node, using);
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, assets);
+
+   node = node.firstChild();
+   while (!node.isNull()) {
+      XML_NODE_CHECK(node, asset);
+
+      shared_ptr<EptObject> ent(new EptObject(node, type));
+      objects.insert(ent);
+
+      node = node.nextSibling();
    }
 }
 
 //===========================================
-// Importer::importAssets
+// Importer::importSegments
 //===========================================
-void Importer::importAssets(const MapSettings& settings, const vector<string>& includes, ObjectContainer& objects) {
-   for (unsigned int i = 0; i < includes.size(); ++i) {
-      stringstream path;
-      path << m_path << "/" << includes[i];
-
-      try {
-         XmlDocument doc;
-         doc.parse(path.str());
-
-         XmlNode node = doc.firstNode();
-         node = node.nextSibling();
-         XML_NODE_CHECK(node, ASSETFILE);
-
-         node = node.firstChild();
-         XML_NODE_CHECK(node, assets);
-
-         node = node.firstChild();
-
-         while (!node.isNull()) {
-            XML_NODE_CHECK(node, asset);
-
-            shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
-            objects.insert(ent);
-
-            node = node.nextSibling();
-         }
-      }
-      catch (XmlException&) {
-         // TODO
-         throw;
-
-         continue;
-      }
-   }
-
+void Importer::importSegments(const MapSettings& settings, ObjectContainer& objects) {
    const Vec2i& segs = settings.numSegments;
 
    for (int i = 0; i < segs.x; ++i) {
@@ -121,25 +129,7 @@ void Importer::importAssets(const MapSettings& settings, const vector<string>& i
          ss << m_path << "/" << settings.segmentsDir << "/" << i << j << ".xml";
 
          try {
-            XmlDocument doc;
-            doc.parse(ss.str());
-
-            XmlNode node = doc.firstNode();
-            node = node.nextSibling();
-            XML_NODE_CHECK(node, ASSETFILE);
-
-            node = node.firstChild();
-            XML_NODE_CHECK(node, assets);
-
-            node = node.firstChild();
-            while (!node.isNull()) {
-               XML_NODE_CHECK(node, asset);
-
-               shared_ptr<EptObject> ent(new EptObject(node, EptObject::INSTANCE));
-               objects.insert(ent);
-
-               node = node.nextSibling();
-            }
+            readAssetFile(objects, ss.str(), EptObject::INSTANCE);
          }
          catch (XmlException&) {
             // TODO

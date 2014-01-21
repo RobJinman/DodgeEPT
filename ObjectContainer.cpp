@@ -97,7 +97,7 @@ void ObjectContainer::move(const QString& name, int i, int j) {
 //===========================================
 // ObjectContainer::changeType
 //===========================================
-void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
+/*void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
    auto i = m_byName.find(name);
    if (i == m_byName.end())
       EXCEPTION("No object with name '" << name.toLocal8Bit().data() << "'");
@@ -117,6 +117,78 @@ void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
       assert(false);
 
    insert(ptr);
+}*/
+
+//===========================================
+// ObjectContainer::changeName
+//===========================================
+void ObjectContainer::changeName(long id, const QString& name) {
+   auto i = m_byId.find(id);
+   if (i == m_byId.end())
+      EXCEPTION("No object with id " << id);
+
+   auto ptr = i->second.lock();
+   assert(ptr);
+
+   m_byName.erase(ptr->name());
+   EptObjAccessor::name(*ptr) = name;
+
+   m_byName.insert(make_pair(name, ptr));
+}
+
+//===========================================
+// ObjectContainer::changeType
+//===========================================
+void ObjectContainer::changeType(long id, EptObject::type_t type) {
+   auto i = m_byId.find(id);
+   if (i == m_byId.end())
+      EXCEPTION("No object with id " << id);
+
+   auto ptr = i->second.lock();
+   assert(ptr);
+
+   EptObjAccessor::type(*ptr) = type;
+
+   if (type == EptObject::PROTOTYPE) {
+      m_instances.erase(ptr);
+   }
+   else if (type == EptObject::INSTANCE) {
+      m_prototypes.erase(ptr);
+   }
+   else
+      assert(false);
+
+   insert(ptr);
+}
+
+//===========================================
+// ObjectContainer::changeName
+//===========================================
+/*void ObjectContainer::changeName(const QString& from, const QString& to) {
+   auto i = m_byName.find(from);
+   if (i == m_byName.end())
+      EXCEPTION("No object with name '" << from.toLocal8Bit().data() << "'");
+
+   auto ptr = i->second.lock();
+   assert(ptr);
+
+   m_byName.erase(from);
+   EptObjAccessor::name(*ptr) = to;
+
+   m_byName.insert(make_pair(to, ptr));
+}*/
+
+//===========================================
+// ObjectContainer::clear
+//===========================================
+void ObjectContainer::clear() {
+   m_prototypes.clear();
+   m_instances.clear();
+   m_byId.clear();
+   m_byName.clear();
+   m_bySegment.clear();
+   m_globals.clear();
+   m_objects.clear();
 }
 
 //===========================================

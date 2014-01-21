@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ASSETFILE>
+<using>
+</using>
+<assets>
+<asset assetId="932">
+	<Texture path="data/textures/platform1.png"/>
+</asset>
+
+<asset assetId="1000" addToWorld="false">
+	<ExtEntity>
+		<PhysicalSprite>
+			<Sprite>
+				<Entity type="stationaryPlatform" name="stationaryPlatformProto" x="0.0" y="0.0" z="4" rot="0.0">
+					<shape>
+						<Polygon>
+							<Vec2f x="0.0" y="0.0"/>
+							<Vec2f x="0.4" y="0.0"/>
+							<Vec2f x="0.4" y="0.05"/>
+							<Vec2f x="0.0" y="0.05"/>
+						</Polygon>
+					</shape>
+					<scale>
+						<Vec2f x="1.0" y="1.0"/>
+					</scale>
+					<fillColour>
+						<Colour r="1.0" g="1.0" b="1.0" a="1.0"/>
+					</fillColour>
+					<lineColour>
+						<Colour r="1.0" g="1.0" b="1.0" a="1.0"/>
+					</lineColour>
+					<lineWidth>0</lineWidth>
+					<children/>
+				</Entity>
+				<EntityAnimations>
+					<texture assetId="932"/>
+					<textureSection>
+						<Range>
+							<pos>
+								<Vec2f x="0" y="0"/>
+							</pos>
+							<size>
+								<Vec2f x="64" y="16"/>
+							</size>
+						</Range>
+					</textureSection>
+					<onScreenSize>
+						<Vec2f x="0.4" y="0.05"/>
+					</onScreenSize>
+				</EntityAnimations>
+				<EntityTransformations/>
+			</Sprite>
+			<Box2dPhysics dynamic="false" fixedAngle="true" density="1.0" friction="0.3"/>
+		</PhysicalSprite>
+		<Item solid="true"/>
+	</ExtEntity>
+</asset>
+
+</assets>
+</ASSETFILE>

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <dodge/xml/xml.hpp>
+#include "EptObject.hpp"
 
 
 class ObjectContainer;
@@ -17,7 +18,10 @@ class Importer {
       void import(MapSettings& settings, ObjectContainer& objects);
 
    private:
-      void importAssets(const MapSettings& settings, const std::vector<std::string>& includes, ObjectContainer& objects);
+      void importPrototypes(ObjectContainer& objects);
+      void readMapFile(MapSettings& settings, ObjectContainer& objects);
+      void readAssetFile(ObjectContainer& objects, const std::string& path, EptObject::type_t type);
+      void importSegments(const MapSettings& settings, ObjectContainer& objects);
 
       std::string m_path;
 };

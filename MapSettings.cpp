@@ -107,7 +107,7 @@ XmlDocument MapSettings::toXml() const {
 
             ss_vec2f.addAttribute("y", ss.str().data());
       XmlNode segmentsDir = settings.addNode("segmentsDir");
-         segmentsDir.setValue("data/xml/0"); // TODO
+         segmentsDir.setValue("0"); // TODO
 
    return doc;
 }

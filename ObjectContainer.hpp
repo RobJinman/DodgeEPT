@@ -52,9 +52,12 @@ class ObjectContainer {
 
       ObjectContainer();
 
+      inline int size() const;
+
       bool contains(const QString& name) const;
 
       void insert(std::shared_ptr<EptObject> obj);
+      void clear();
 
       inline std::weak_ptr<EptObject> get(long id) const;
       inline std::weak_ptr<EptObject> get(const QString& name) const;
@@ -62,8 +65,11 @@ class ObjectContainer {
       const wkPtrSet_t& get(int i, int j) const;
 
       void move(const QString& name, int i, int j);
+//      void changeType(const QString& name, EptObject::type_t type);
+//      void changeName(const QString& from, const QString& to);
 
-      void changeType(const QString& name, EptObject::type_t type);
+      void changeType(long id, EptObject::type_t type);
+      void changeName(long id, const QString& name);
 
       inline iterator begin();
       inline iterator end();
@@ -81,6 +87,10 @@ class ObjectContainer {
 
       wkPtrSet_t m_nullSet;
 };
+
+inline int ObjectContainer::size() const {
+   return m_objects.size();
+}
 
 inline ObjectContainer::iterator ObjectContainer::begin() {
    return iterator(m_objects.begin());

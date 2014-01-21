@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
 #include <dodge/Exception.hpp>
 
 
@@ -23,6 +24,8 @@ void alert_std(const std::string& msg);
 
 // Returns true on success
 bool createDir(const std::string& path);
+
+void filesInDir(const std::string& path, std::vector<std::string>& files);
 
 
 #endif

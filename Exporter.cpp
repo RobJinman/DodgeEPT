@@ -18,32 +18,216 @@ Exporter::Exporter(const std::string& path)
    : m_path(path) {}
 
 //===========================================
-// Exporter::buildMapFile
+// Exporter::finaliseLocation
 //===========================================
-void Exporter::buildMapFile(const MapSettings& settings, const vector<string>& includes, const ObjectContainer& objects) {
+void Exporter::finaliseLocation(
+   const MapSettings& settings,
+   shared_ptr<EptObject> obj,
+   ObjectContainer& objects,
+   const set<long>& dependents,
+   map<long, int>& membership, // File membership (idx of fileList)
+   vector<file_t>& fileList) {
+
+   // Place in user-specified location
+   if (dependents.size() == 0) {
+      if (obj->type() == EptObject::INSTANCE) {
+         const Vec2f& seg = obj->segment();
+         int idx = seg.y * settings.numSegments.x + seg.x + 1; // Add 1 because first file is map file
+
+         if (seg.x == -1 && seg.y == -1)
+            idx = 0;
+
+         fileList[idx].assets.push_front(obj);
+         membership.insert(make_pair(obj->id(), idx));
+      }
+      // If for some reason prototype has no dependents, put a 'using' tag in user-specified location
+      else if (obj->type() == EptObject::PROTOTYPE) {
+         const Vec2f& seg = obj->segment();
+         int idx = seg.y * settings.numSegments.x + seg.x + 1; // Add 1 because first file is map file
+
+         if (seg.x == -1 && seg.y == -1)
+            idx = 0;
+
+         stringstream ss;
+         ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+
+         fileList[idx].includes.push_front(ss.str());
+      }
+   }
+   else {
+      bool sameLocation = true;
+
+      int idx = -1;
+      Vec2i seg(-2, -2);
+      for (auto i = dependents.begin(); i != dependents.end(); ++i) {
+         auto pDep = objects.get(*i).lock();
+         assert(pDep);
+
+         auto it = membership.find(*i);
+         assert(it != membership.end());
+         int depIdx = it->second;
+
+         if (idx == -1) {
+            seg = pDep->segment();
+            idx = depIdx;
+            continue;
+         }
+
+         if (idx != depIdx) {
+            sameLocation = false;
+            break;
+         }
+      }
+
+      assert(idx != -1);
+      assert(seg != Vec2i(-2, -2));
+
+      // If all dependents are in the same segment
+      if (sameLocation) {
+         if (obj->type() == EptObject::INSTANCE) {
+            fileList[idx].assets.push_front(obj);
+            membership.insert(make_pair(obj->id(), idx));
+         }
+         else if (obj->type() == EptObject::PROTOTYPE) {
+            stringstream ss;
+            ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+
+            fileList[idx].includes.push_front(ss.str());
+         }
+
+         if (obj->segment() != seg)
+            objects.move(obj->name(), seg.x, seg.y);
+      }
+      // If dependents are spread across multiple files, make global
+      else {
+         if (obj->type() == EptObject::INSTANCE) {
+            fileList[0].assets.push_front(obj);
+            membership.insert(make_pair(obj->id(), 0));
+         }
+         else if (obj->type() == EptObject::PROTOTYPE) {
+            stringstream ss;
+            ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+
+            fileList[0].includes.push_front(ss.str());
+         }
+
+         if (obj->segment() != Vec2i(-1, -1))
+            objects.move(obj->name(), -1, -1);
+      }
+   }
+}
+
+//===========================================
+// Exporter::computeLocations
+//===========================================
+void Exporter::computeLocations(
+   const MapSettings& settings,
+   ObjectContainer& objects,
+   vector<file_t>& fileList) {
+
+   map<long, set<long> > dependents;
+   map<long, int> numDependents;
+   set<long> zeroDependents;
+   vector<long> pending;
+
+   // For each object
+   for (auto i = objects.begin(); i != objects.end(); ++i) {
+      shared_ptr<EptObject> obj = i->lock();
+      assert(obj);
+
+      if (dependents.find(obj->id()) == dependents.end()) {
+         dependents.insert(make_pair(obj->id(), set<long>()));
+         numDependents[obj->id()] = 0;
+      }
+
+      obj->computeDependencies();
+      const set<long>& dependencies = obj->dependencies();
+
+      // Populate dependents map
+      for (auto dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
+         dependents[*dep].insert(obj->id());
+         numDependents[*dep] += 1;
+      }
+   }
+
+   for (auto i = dependents.begin(); i != dependents.end(); ++i) {
+      if (i->second.size() == 0) pending.push_back(i->first);
+   }
+
+   map<long, int> membership;
+
+   auto objs = objects.get(EptObject::PROTOTYPE);
+   for (auto i = objs.begin(); i != objs.end(); ++i) {
+      auto obj = i->lock();
+      assert(obj);
+
+      stringstream ss;
+      ss << obj->name().toLocal8Bit().data() << ".xml";
+
+      file_t protoFile;
+      protoFile.dir = m_path;
+      protoFile.name = ss.str();
+      protoFile.assets.push_back(obj);
+
+      fileList.push_back(protoFile);
+      membership.insert(make_pair(obj->id(), fileList.size() - 1));
+   }
+
+   for (unsigned int i = 0; i < pending.size(); ++i) {
+      shared_ptr<EptObject> obj = objects.get(pending[i]).lock();
+      assert(obj);
+
+      auto it = dependents.find(obj->id());
+      assert(it != dependents.end());
+
+      finaliseLocation(settings, obj, objects, it->second, membership, fileList);
+
+      const set<long>& dependencies = obj->dependencies();
+
+      for (auto dep = dependencies.begin(); dep != dependencies.end(); ++dep) {
+         auto it = numDependents.find(*dep);
+         assert(it != numDependents.end());
+
+         it->second--;
+
+         if (it->second == 0) pending.push_back(*dep);
+      }
+   }
+
+   // Ensure that all objects have been processed
+   if (static_cast<int>(pending.size()) != objects.size()) {
+      EXCEPTION("Failed to export some assets");
+   }
+}
+
+//===========================================
+// Exporter::exportMapFile
+//===========================================
+void Exporter::exportMapFile(const MapSettings& settings, const file_t& file) {
    XmlDocument xml = settings.toXml();
 
    XmlNode customSettings = xml.addNode("customSettings");
    XmlNode using_ = xml.addNode("using");
-   for (unsigned int i = 0; i < includes.size(); ++i) {
-      XmlNode file = using_.addNode("file");
-      file.setValue(includes[i]);
+   for (auto i = file.includes.begin(); i != file.includes.end(); ++i) {
+      XmlNode file_ = using_.addNode("file");
+      file_.setValue(*i);
    }
 
    XmlNode assets = xml.addNode("assets");
-   auto objs = objects.get(-1, -1);
-   for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
-      auto ptr = iObj->lock();
-      assert(ptr);
+   for (auto iObj = file.assets.begin(); iObj != file.assets.end(); ++iObj) {
+      auto obj = *iObj;
 
-      auto doc = ptr->xml().lock();
+      auto doc = obj->xml().lock();
       assert(doc);
 
       assets.addNode(doc->firstNode());
    }
 
+   if (!createDir(file.dir))
+      EXCEPTION("Error creating directory '" << file.dir << "'");
+
    stringstream path;
-   path << m_path << "/" << settings.fileName;
+   path << file.dir << "/" << file.name;
 
    ofstream fout(path.str());
    if (!fout.good()) {
@@ -60,35 +244,45 @@ void Exporter::buildMapFile(const MapSettings& settings, const vector<string>& i
 }
 
 //===========================================
-// Exporter::exportPrototypes
+// Exporter::exportObjects
 //===========================================
-void Exporter::exportPrototypes(const ObjectContainer& objects, vector<string>& includes) {
-   const ObjectContainer::wkPtrSet_t& objs = objects.get(EptObject::PROTOTYPE);
+void Exporter::exportObjects(const vector<file_t>& fileList) {
+   // First file is map file
+   for (unsigned int i = 1; i < fileList.size(); ++i) {
+      const file_t& file = fileList[i];
 
-   for (auto i = objs.begin(); i != objs.end(); ++i) {
-      shared_ptr<EptObject> obj = i->lock();
-      assert(obj);
+      if (!createDir(file.dir))
+         EXCEPTION("Error creating directory '" << file.dir << "'");
 
       stringstream ss;
-      ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+      ss << file.dir << "/" << file.name;
 
       ofstream fout(ss.str());
       if (!fout.good()) {
          fout.close();
-         cerr << "Error writing to file '" << ss.str() << "'\n";
-
-         continue;
+         EXCEPTION("Error opening file '" << ss.str() << "'");
       }
-
-      includes.push_back(ss.str());
-
-      auto xml = obj->xml().lock();
-      assert(xml);
 
       fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
       fout << "<ASSETFILE>\n";
+
+      fout << "<using>\n";
+      for (auto it = file.includes.begin(); it != file.includes.end(); ++it) {
+         fout << "\t<file>" << *it << "</file>\n";
+      }
+      fout << "</using>\n";
+
       fout << "<assets>\n";
-      xml->print(fout);
+
+      for (auto iObj = file.assets.begin(); iObj != file.assets.end(); ++iObj) {
+         auto obj = *iObj;
+
+         auto xml = obj->xml().lock();
+         assert(xml);
+
+         xml->print(fout);
+      }
+
       fout << "</assets>\n";
       fout << "</ASSETFILE>\n";
 
@@ -97,60 +291,43 @@ void Exporter::exportPrototypes(const ObjectContainer& objects, vector<string>& 
 }
 
 //===========================================
-// Exporter::exportInstances
+// Exporter::doExport
 //===========================================
-void Exporter::exportInstances(const MapSettings& settings, const ObjectContainer& objects) {
-   const Vec2i& segs = settings.numSegments;
+void Exporter::doExport(const MapSettings& settings, const vector<file_t>& fileList) {
+   assert(fileList.size() > 0);
 
-   for (int i = 0; i < segs.x; ++i) {
-      for (int j = 0; j < segs.y; ++j) {
-         stringstream ss;
-         ss << m_path << "/" << settings.segmentsDir;
-
-         if (!createDir(ss.str()))
-            EXCEPTION("Error creating directory '" << ss.str() << "'");
-
-         ss << "/" << i << j << ".xml";
-
-         ofstream fout(ss.str());
-         if (!fout.good()) {
-            fout.close();
-            EXCEPTION("Error opening file '" << ss.str() << "'");
-         }
-
-         fout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-         fout << "<ASSETFILE>\n";
-         fout << "<assets>\n";
-
-         auto objs = objects.get(i, j);
-
-         for (auto iObj = objs.begin(); iObj != objs.end(); ++iObj) {
-            auto obj = iObj->lock();
-            assert(obj);
-
-            if (obj->type() == EptObject::PROTOTYPE) continue;
-
-            auto xml = obj->xml().lock();
-            assert(xml);
-
-            xml->print(fout);
-         }
-
-         fout << "</assets>\n";
-         fout << "</ASSETFILE>\n";
-
-         fout.close();
-      }
-   }
+   exportMapFile(settings, fileList[0]);
+   exportObjects(fileList);
 }
 
 //===========================================
 // Exporter::export_
 //===========================================
-void Exporter::export_(const MapSettings& settings, const ObjectContainer& objects) {
-   vector<string> includes;
+void Exporter::export_(const MapSettings& settings, ObjectContainer& objects) {
+   vector<file_t> fileList;
 
-   exportPrototypes(objects, includes);
-   exportInstances(settings, objects);
-   buildMapFile(settings, includes, objects);
+   file_t global;
+   global.dir = m_path;
+   global.name = "map0.xml"; // TODO
+   fileList.push_back(global);
+
+   const Vec2i& segs = settings.numSegments;
+   for (int i = 0; i < segs.x; ++i) {
+      for (int j = 0; j < segs.y; ++j) {
+         stringstream ss;
+
+         file_t file;
+         file.dir = m_path + "/0"; // TODO
+ 
+         ss << i << j << ".xml";
+
+         file.name = ss.str();
+
+         fileList.push_back(file);
+      }
+   }
+
+   computeLocations(settings, objects, fileList);
+
+   doExport(settings, fileList);
 }

@@ -7,30 +7,32 @@
 				<Vec2f x="0" y="0"/>
 			</pos>
 			<size>
-				<Vec2f x="0" y="0"/>
+				<Vec2f x="2.6" y="1.4"/>
 			</size>
 		</Range>
 	</boundary>
 	<numSegments>
-		<Vec2i x="3" y="2"/>
+		<Vec2i x="1" y="1"/>
 	</numSegments>
 	<segmentSize>
-		<Vec2f x="0" y="0"/>
+		<Vec2f x="2.6" y="1.4"/>
 	</segmentSize>
 	<segmentsDir>0</segmentsDir>
 </settings>
 <customSettings/>
 <using>
-	<file>leopardProto.xml</file>
+	<file>./export/playerProto.xml</file>
 </using>
 <assets>
-<asset assetId="3">
-	<thing a="34" b="12"/>
-	<fruit>
-		<orange size="small"/>
-	</fruit>
-	<animal assetId="0"/>
-</asset>
+	<asset assetId="99" protoId="10" addToWorld="true">
+		<Player>
+			<PhysicalSprite>
+				<Sprite>
+					<Entity name="player" x="0.0" y="0.0" z="8"/>
+				</Sprite>
+			</PhysicalSprite>
+		</Player>
+	</asset>
 </assets>
 
 </MAPFILE>

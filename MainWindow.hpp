@@ -52,11 +52,24 @@ class MainWindow : public QMainWindow {
       void onSpnSegmentXChanged(int value);
       void onSpnSegmentYChanged(int value);
       void onMapSettingsChange();
+      void onObjectNameChange(QTreeWidgetItem* item, int column);
+      void onOpen();
+      void onSave();
+      void onSaveAs();
 
    private:
-      void computeDependencies();
+      void loadProjectFile();
+      void writeProjectFile();
+      void copyAssets();
+
       void updateAssetList(const QString& select);
       void updateAssetList_r(QTreeWidgetItem* parent, std::weak_ptr<EptObject> obj);
+
+      void updatePrototypesCombo();
+
+      std::string                m_rootPath;
+      std::string                m_projFilePath; // Relative to root
+      std::string                m_assetsPath;   // Relative to root
 
       std::unique_ptr<Importer>  m_importer;
       std::unique_ptr<Exporter>  m_exporter;
@@ -64,6 +77,7 @@ class MainWindow : public QMainWindow {
       std::weak_ptr<EptObject>   m_current;
 
       QMenu*                     m_mnuFile;
+      QAction*                   m_actOpen;
       QAction*                   m_actSave;
       QAction*                   m_actSaveAs;
       QAction*                   m_actImport;

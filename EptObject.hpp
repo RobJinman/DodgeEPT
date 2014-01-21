@@ -63,6 +63,10 @@ class EptObjAccessor {
       static EptObject::type_t& type(EptObject& obj) {
          return obj.m_type;
       }
+
+      static QString& name(EptObject& obj) {
+         return obj.m_name;
+      }
 };
 
 inline long EptObject::id() const {
