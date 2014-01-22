@@ -28,7 +28,7 @@ void MapSettings::loadFromXml(XmlNode node) {
    //   <segmentSize>
    //     <Vec2f/>
    //   </segmentSize>
-   //   <segmentsDir/>
+   //   <segmentsPath/>
    // </settings>
 
    XML_NODE_CHECK(node, settings);
@@ -47,8 +47,8 @@ void MapSettings::loadFromXml(XmlNode node) {
    segmentSize = Vec2f(node.firstChild());
 
    node = node.nextSibling();
-   XML_NODE_CHECK(node, segmentsDir);
-   segmentsDir = node.getString();
+   XML_NODE_CHECK(node, segmentsPath);
+   segmentsPath = node.getString();
 }
 
 //===========================================
@@ -106,8 +106,8 @@ XmlDocument MapSettings::toXml() const {
             ss << this->segmentSize.y;
 
             ss_vec2f.addAttribute("y", ss.str().data());
-      XmlNode segmentsDir = settings.addNode("segmentsDir");
-         segmentsDir.setValue("0"); // TODO
+      XmlNode segmentsPath = settings.addNode("segmentsPath");
+         segmentsPath.setValue(this->segmentsPath);
 
    return doc;
 }

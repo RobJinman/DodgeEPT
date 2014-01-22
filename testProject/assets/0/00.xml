@@ -1,29 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ASSETFILE>
 <using>
-	<file>./export/soilProto.xml</file>
-	<file>./export/movingPlatformProto.xml</file>
-	<file>./export/stopBlockProto.xml</file>
-	<file>./export/playerProto.xml</file>
-	<file>./export/stationaryPlatformProto.xml</file>
+	<file>soilProto.xml</file>
+	<file>movingPlatformProto.xml</file>
+	<file>stopBlockProto.xml</file>
+	<file>stationaryPlatformProto.xml</file>
 </using>
 <assets>
-<asset assetId="49">
-	<Texture path="data/textures/soil64.png"/>
-</asset>
-
-<asset assetId="332">
-	<Texture path="data/textures/platform1.png"/>
-</asset>
-
-<asset assetId="9">
-	<Texture path="data/textures/ss8x8squares128x128g.png"/>
-</asset>
-
-<asset assetId="932">
-	<Texture path="data/textures/platform1.png"/>
-</asset>
-
 <asset assetId="111">
 	<Texture path="data/textures/cave01.png"/>
 </asset>
@@ -2036,16 +2019,6 @@
 			</scale>
 		</Entity>
 	</PhysicalEntity>
-</asset>
-
-<asset assetId="99" protoId="10" addToWorld="true">
-	<Player>
-		<PhysicalSprite>
-			<Sprite>
-				<Entity name="player" x="0.0" y="0.0" z="8"/>
-			</Sprite>
-		</PhysicalSprite>
-	</Player>
 </asset>
 
 <asset assetId="98" addToWorld="true">

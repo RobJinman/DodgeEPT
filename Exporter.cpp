@@ -15,7 +15,7 @@ using namespace Dodge;
 // Exporter::Exporter
 //===========================================
 Exporter::Exporter(const std::string& path)
-   : m_path(path) {}
+   : m_dataRoot(path) {}
 
 //===========================================
 // Exporter::finaliseLocation
@@ -49,7 +49,7 @@ void Exporter::finaliseLocation(
             idx = 0;
 
          stringstream ss;
-         ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+         ss << obj->name().toLocal8Bit().data() << ".xml";
 
          fileList[idx].includes.push_front(ss.str());
       }
@@ -90,13 +90,13 @@ void Exporter::finaliseLocation(
          }
          else if (obj->type() == EptObject::PROTOTYPE) {
             stringstream ss;
-            ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+            ss << obj->name().toLocal8Bit().data() << ".xml";
 
             fileList[idx].includes.push_front(ss.str());
          }
 
          if (obj->segment() != seg)
-            objects.move(obj->name(), seg.x, seg.y);
+            objects.move(obj->id(), seg.x, seg.y);
       }
       // If dependents are spread across multiple files, make global
       else {
@@ -106,13 +106,13 @@ void Exporter::finaliseLocation(
          }
          else if (obj->type() == EptObject::PROTOTYPE) {
             stringstream ss;
-            ss << m_path << "/" << obj->name().toLocal8Bit().data() << ".xml";
+            ss << obj->name().toLocal8Bit().data() << ".xml";
 
             fileList[0].includes.push_front(ss.str());
          }
 
          if (obj->segment() != Vec2i(-1, -1))
-            objects.move(obj->name(), -1, -1);
+            objects.move(obj->id(), -1, -1);
       }
    }
 }
@@ -124,6 +124,8 @@ void Exporter::computeLocations(
    const MapSettings& settings,
    ObjectContainer& objects,
    vector<file_t>& fileList) {
+
+   PRINT_STRING("exporter", "\tComputing dependencies ...");
 
    map<long, set<long> > dependents;
    map<long, int> numDependents;
@@ -165,7 +167,7 @@ void Exporter::computeLocations(
       ss << obj->name().toLocal8Bit().data() << ".xml";
 
       file_t protoFile;
-      protoFile.dir = m_path;
+      protoFile.dir = m_dataRoot;
       protoFile.name = ss.str();
       protoFile.assets.push_back(obj);
 
@@ -192,11 +194,6 @@ void Exporter::computeLocations(
 
          if (it->second == 0) pending.push_back(*dep);
       }
-   }
-
-   // Ensure that all objects have been processed
-   if (static_cast<int>(pending.size()) != objects.size()) {
-      EXCEPTION("Failed to export some assets");
    }
 }
 
@@ -241,6 +238,8 @@ void Exporter::exportMapFile(const MapSettings& settings, const file_t& file) {
    fout << "</MAPFILE>\n";
 
    fout.close();
+
+   PRINT_STRING("exporter", "\t\t" << path.str());
 }
 
 //===========================================
@@ -287,6 +286,8 @@ void Exporter::exportObjects(const vector<file_t>& fileList) {
       fout << "</ASSETFILE>\n";
 
       fout.close();
+
+      PRINT_STRING("exporter", "\t\t" << ss.str());
    }
 }
 
@@ -294,6 +295,8 @@ void Exporter::exportObjects(const vector<file_t>& fileList) {
 // Exporter::doExport
 //===========================================
 void Exporter::doExport(const MapSettings& settings, const vector<file_t>& fileList) {
+   PRINT_STRING("exporter", "\tWriting files ...");
+
    assert(fileList.size() > 0);
 
    exportMapFile(settings, fileList[0]);
@@ -304,11 +307,18 @@ void Exporter::doExport(const MapSettings& settings, const vector<file_t>& fileL
 // Exporter::export_
 //===========================================
 void Exporter::export_(const MapSettings& settings, ObjectContainer& objects) {
+   PRINT_STRING("exporter", "Beginning export (" << m_dataRoot << ") ...");
+
+   m_numErrors = 0;
+
+   if (!createDir(m_dataRoot))
+      EXCEPTION("Error creating directory '" << m_dataRoot << "'");
+
    vector<file_t> fileList;
 
    file_t global;
-   global.dir = m_path;
-   global.name = "map0.xml"; // TODO
+   global.dir = m_dataRoot;
+   global.name = settings.filePath;
    fileList.push_back(global);
 
    const Vec2i& segs = settings.numSegments;
@@ -317,7 +327,7 @@ void Exporter::export_(const MapSettings& settings, ObjectContainer& objects) {
          stringstream ss;
 
          file_t file;
-         file.dir = m_path + "/0"; // TODO
+         file.dir = m_dataRoot + "/" + settings.segmentsPath;
  
          ss << i << j << ".xml";
 
@@ -330,4 +340,11 @@ void Exporter::export_(const MapSettings& settings, ObjectContainer& objects) {
    computeLocations(settings, objects, fileList);
 
    doExport(settings, fileList);
+
+   if (m_numErrors == 0) {
+      PRINT_STRING("exporter", "Export successful");
+   }
+   else {
+      PRINT_STRING("exporter", "Export finished with " << m_numErrors << " errors");
+   }
 }

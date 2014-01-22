@@ -20,10 +20,11 @@ class Importer {
    private:
       void importPrototypes(ObjectContainer& objects);
       void readMapFile(MapSettings& settings, ObjectContainer& objects);
-      void readAssetFile(ObjectContainer& objects, const std::string& path, EptObject::type_t type);
+      void readAssetFile(ObjectContainer& objects, const std::string& path, EptObject::type_t type, const Dodge::Vec2i& segment);
       void importSegments(const MapSettings& settings, ObjectContainer& objects);
 
-      std::string m_path;
+      std::string m_dataRoot;
+      int m_numErrors;
 };
 
 

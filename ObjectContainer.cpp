@@ -70,11 +70,11 @@ const ObjectContainer::wkPtrSet_t& ObjectContainer::get(int i, int j) const {
 //===========================================
 // ObjectContainer::move
 //===========================================
-void ObjectContainer::move(const QString& name, int i, int j) {
-   auto it = m_byName.find(name);
+void ObjectContainer::move(long id, int i, int j) {
+   auto it = m_byId.find(id);
 
-   if (it == m_byName.end())
-      EXCEPTION("Object '" << name.toLocal8Bit().data() << "' not found");
+   if (it == m_byId.end())
+      EXCEPTION("No object with id " << id);
 
    auto ptr = it->second.lock();
    assert(ptr);
@@ -95,35 +95,11 @@ void ObjectContainer::move(const QString& name, int i, int j) {
 }
 
 //===========================================
-// ObjectContainer::changeType
-//===========================================
-/*void ObjectContainer::changeType(const QString& name, EptObject::type_t type) {
-   auto i = m_byName.find(name);
-   if (i == m_byName.end())
-      EXCEPTION("No object with name '" << name.toLocal8Bit().data() << "'");
-
-   auto ptr = i->second.lock();
-   assert(ptr);
-
-   EptObjAccessor::type(*ptr) = type;
-
-   if (type == EptObject::PROTOTYPE) {
-      m_instances.erase(ptr);
-   }
-   else if (type == EptObject::INSTANCE) {
-      m_prototypes.erase(ptr);
-   }
-   else
-      assert(false);
-
-   insert(ptr);
-}*/
-
-//===========================================
 // ObjectContainer::changeName
 //===========================================
 void ObjectContainer::changeName(long id, const QString& name) {
    auto i = m_byId.find(id);
+
    if (i == m_byId.end())
       EXCEPTION("No object with id " << id);
 
@@ -141,6 +117,7 @@ void ObjectContainer::changeName(long id, const QString& name) {
 //===========================================
 void ObjectContainer::changeType(long id, EptObject::type_t type) {
    auto i = m_byId.find(id);
+
    if (i == m_byId.end())
       EXCEPTION("No object with id " << id);
 
@@ -160,23 +137,6 @@ void ObjectContainer::changeType(long id, EptObject::type_t type) {
 
    insert(ptr);
 }
-
-//===========================================
-// ObjectContainer::changeName
-//===========================================
-/*void ObjectContainer::changeName(const QString& from, const QString& to) {
-   auto i = m_byName.find(from);
-   if (i == m_byName.end())
-      EXCEPTION("No object with name '" << from.toLocal8Bit().data() << "'");
-
-   auto ptr = i->second.lock();
-   assert(ptr);
-
-   m_byName.erase(from);
-   EptObjAccessor::name(*ptr) = to;
-
-   m_byName.insert(make_pair(to, ptr));
-}*/
 
 //===========================================
 // ObjectContainer::clear

@@ -16,8 +16,10 @@ class MapSettings {
       Dodge::Range boundary;
       Dodge::Vec2i numSegments;
       Dodge::Vec2f segmentSize;
-      std::string fileName;
-      std::string segmentsDir;
+
+      // Relative to data root
+      std::string filePath;
+      std::string segmentsPath;
 
       void loadFromXml(Dodge::XmlNode node);
       Dodge::XmlDocument toXml() const;

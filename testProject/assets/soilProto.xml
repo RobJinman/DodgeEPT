@@ -3,6 +3,10 @@
 <using>
 </using>
 <assets>
+<asset assetId="49">
+	<Texture path="data/textures/soil64.png"/>
+</asset>
+
 <asset assetId="50" addToWorld="false">
 	<ExtEntity>
 		<Soil>

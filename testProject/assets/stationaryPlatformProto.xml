@@ -3,6 +3,10 @@
 <using>
 </using>
 <assets>
+<asset assetId="932">
+	<Texture path="data/textures/platform1.png"/>
+</asset>
+
 <asset assetId="1000" addToWorld="false">
 	<ExtEntity>
 		<PhysicalSprite>

@@ -20,12 +20,14 @@
 #include <QTreeWidget>
 #include <QCheckBox>
 #include <QFileDialog>
+#include <QSplitter>
 #include "MainWindow.hpp"
 #include "WgtXmlTreeView.hpp"
 #include "WgtMapSettings.hpp"
 #include "Common.hpp"
 #include "Importer.hpp"
 #include "Exporter.hpp"
+#include "Notifications.hpp"
 
 
 using namespace std;
@@ -37,6 +39,11 @@ using namespace Dodge;
 //===========================================
 MainWindow::MainWindow(QWidget* parent)
    : QMainWindow(parent) {
+
+   m_notifications = shared_ptr<Notifications>(new Notifications(Functor<void, TYPELIST_0()>(this, &MainWindow::onNotification)));
+   addPrintStream("notifications", m_notifications);
+   addPrintStream("importer", m_notifications);
+   addPrintStream("exporter", m_notifications);
 
    resize(600, 400);
    setWindowTitle("Dodge :: Entity Placement Tool");
@@ -57,17 +64,19 @@ MainWindow::MainWindow(QWidget* parent)
    m_mnuFile->addAction(m_actQuit);
 
    m_wgtCentral = new QWidget(this);
-   m_wgtLeftColumnTabs = new QTabWidget(m_wgtCentral);
+   m_wgtVSplitter = new QSplitter(Qt::Vertical, m_wgtCentral);
+   m_wgtTop = new QWidget(m_wgtVSplitter);
+   m_wgtLeftColumnTabs = new QTabWidget(m_wgtTop);
    m_wgtToolsTab = new QWidget(m_wgtLeftColumnTabs);
    m_wgtTools = new QToolBox(m_wgtToolsTab);
    m_wgtCboPrototypes = new QComboBox(m_wgtToolsTab);
-   m_wgtCentralColumnTabs = new QTabWidget(m_wgtCentral);
+   m_wgtCentralColumnTabs = new QTabWidget(m_wgtTop);
    m_wgtDrawScreenTab = new QTabWidget(m_wgtCentralColumnTabs);
    m_wgtDrawScreen = new QGraphicsView(m_wgtDrawScreenTab);
    m_wgtXmlEditTab = new QWidget(m_wgtCentralColumnTabs);
    m_wgtXmlEdit = new QTextEdit(m_wgtXmlEditTab);
    m_wgtXmlApply = new QPushButton("Apply", m_wgtXmlEditTab);
-   m_wgtRightColumnTabs = new QTabWidget(m_wgtCentral);
+   m_wgtRightColumnTabs = new QTabWidget(m_wgtTop);
    m_wgtXmlTreeTab = new QWidget(m_wgtRightColumnTabs);
    m_wgtXmlTree = new WgtXmlTreeView(m_wgtXmlTreeTab);
    m_wgtChkPrototype = new QCheckBox("prototype", m_wgtXmlTreeTab);
@@ -85,6 +94,33 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtChkNewIsPrototype = new QCheckBox("prototype", m_wgtGrpAssets);
    m_wgtBtnNewAsset = new QPushButton("Add", m_wgtGrpAssets);
    m_wgtMapSettingsTab = new WgtMapSettings(m_wgtRightColumnTabs);
+   m_wgtGrpNotifications = new QGroupBox("Notifications", m_wgtVSplitter);
+   m_wgtTxtNotifications = new QTextEdit(m_wgtGrpNotifications);
+
+
+   // NOTIFICATIONS SECTION
+
+   QFont notificationsFont;
+   notificationsFont.setFamily("Courier");
+   notificationsFont.setStyleHint(QFont::Monospace);
+   notificationsFont.setFixedPitch(true);
+   notificationsFont.setPointSize(10);
+
+   m_wgtTxtNotifications->setFont(notificationsFont);
+
+   const int notificationsTabStop = 2;
+   QFontMetrics notificationMetrics(notificationsFont);
+   m_wgtTxtNotifications->setTabStopWidth(notificationsTabStop * notificationMetrics.width(' '));
+
+   QVBoxLayout* notificationsLayout = new QVBoxLayout;
+   notificationsLayout->addWidget(m_wgtTxtNotifications);
+   m_wgtGrpNotifications->setLayout(notificationsLayout);
+
+   m_wgtTxtNotifications->setReadOnly(true);
+
+   QPalette p = m_wgtTxtNotifications->palette();
+   p.setColor(QPalette::Base, QColor(140, 140, 140));
+   m_wgtTxtNotifications->setPalette(p);
 
 
    // LEFT COLUMN
@@ -119,17 +155,17 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtRightColumnTabs->addTab(m_wgtObjectsTab, "Objects");
    m_wgtRightColumnTabs->addTab(m_wgtMapSettingsTab, "Map Settings");
 
-   QFont font;
-   font.setFamily("Courier");
-   font.setStyleHint(QFont::Monospace);
-   font.setFixedPitch(true);
-   font.setPointSize(10);
+   QFont xmlEditFont;
+   xmlEditFont.setFamily("Courier");
+   xmlEditFont.setStyleHint(QFont::Monospace);
+   xmlEditFont.setFixedPitch(true);
+   xmlEditFont.setPointSize(10);
 
-   m_wgtXmlEdit->setFont(font);
+   m_wgtXmlEdit->setFont(xmlEditFont);
 
-   const int tabStop = 2;
-   QFontMetrics metrics(font);
-   m_wgtXmlEdit->setTabStopWidth(tabStop * metrics.width(' '));
+   const int xmlEditTabStop = 2;
+   QFontMetrics xmlEditMetrics(xmlEditFont);
+   m_wgtXmlEdit->setTabStopWidth(xmlEditTabStop * xmlEditMetrics.width(' '));
 
    QVBoxLayout* xmlTreeTabLayout = new QVBoxLayout;
    xmlTreeTabLayout->addWidget(m_wgtXmlTree);
@@ -161,14 +197,22 @@ MainWindow::MainWindow(QWidget* parent)
    m_wgtGrpAssets->setLayout(newAssetLayout);
 
 
-   QHBoxLayout* mainLayout = new QHBoxLayout;
-
    setCentralWidget(m_wgtCentral);
+
+   QVBoxLayout* mainLayout = new QVBoxLayout;
+   mainLayout->addWidget(m_wgtVSplitter);
+
    m_wgtCentral->setLayout(mainLayout);
 
-   mainLayout->addWidget(m_wgtLeftColumnTabs, 1);
-   mainLayout->addWidget(m_wgtCentralColumnTabs, 6);
-   mainLayout->addWidget(m_wgtRightColumnTabs, 3);
+   QHBoxLayout* topLayout = new QHBoxLayout;
+   m_wgtTop->setLayout(topLayout);
+
+   topLayout->addWidget(m_wgtLeftColumnTabs, 1);
+   topLayout->addWidget(m_wgtCentralColumnTabs, 6);
+   topLayout->addWidget(m_wgtRightColumnTabs, 3);
+
+   m_wgtVSplitter->addWidget(m_wgtTop);
+   m_wgtVSplitter->addWidget(m_wgtGrpNotifications);
 
    connect(m_actQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
    connect(m_actOpen, SIGNAL(triggered()), this, SLOT(onOpen()));
@@ -190,6 +234,15 @@ MainWindow::MainWindow(QWidget* parent)
 }
 
 //===========================================
+// MainWindow::onNotification
+//===========================================
+void MainWindow::onNotification() {
+   const QString& text = m_notifications->getText();
+
+   m_wgtTxtNotifications->setText(text);
+}
+
+//===========================================
 // MainWindow::onOpen
 //===========================================
 void MainWindow::onOpen() {
@@ -201,13 +254,14 @@ void MainWindow::onOpen() {
       if (path[i] == '/' || path[i] == '\'') break;
    }
 
+   m_numProjLoadErrors = 0;
+   PRINT_STRING("notifications", "Loading project ...");
+
    m_objects.clear();
 
-   m_rootPath = path.substr(0, i);
-   m_projFilePath = path.substr(i + 1, path.length() - i - 1);
-   m_assetsPath = "assets";
+   m_rootPath = i == 0 ? "." : path.substr(0, i);
 
-   m_importer = unique_ptr<Importer>(new Importer(m_rootPath + "/" + m_assetsPath));
+   m_importer = unique_ptr<Importer>(new Importer(m_rootPath + "/assets"));
    m_importer->import(m_wgtMapSettingsTab->mapSettings(), m_objects);
 
    loadProjectFile();
@@ -215,6 +269,13 @@ void MainWindow::onOpen() {
    m_wgtMapSettingsTab->update();
    updateAssetList("");
    updatePrototypesCombo();
+
+   if (m_numProjLoadErrors == 0) {
+      PRINT_STRING("notifications", "Project successfully loaded");
+   }
+   else {
+      PRINT_STRING("notifications", "Project loaded with " << m_numProjLoadErrors << " errors");
+   }
 }
 
 //===========================================
@@ -223,10 +284,10 @@ void MainWindow::onOpen() {
 void MainWindow::loadProjectFile() {
    XmlDocument xml;
    try {
-      xml.parse(m_rootPath + "/" + m_projFilePath);
+      xml.parse(m_rootPath + "/project.ept");
    }
    catch (XmlException& e) {
-      EXCEPTION("Error loading project file '" << m_rootPath + "/" + m_projFilePath << "'; " << e.what());
+      EXCEPTION("Error loading project file '" << m_rootPath << "/project.ept'; " << e.what());
    }
 
    XmlNode settings = xml.firstNode();
@@ -243,8 +304,8 @@ void MainWindow::loadProjectFile() {
       long id = attr.getLong();
       shared_ptr<EptObject> obj = m_objects.get(id).lock();
       if (!obj) {
-         // TODO: Error!
-         continue;
+         PRINT_STRING("notifications", "\tError: No asset with id=" << id << ". Continuing ...");
+         ++m_numProjLoadErrors;
       }
 
       attr = attr.nextAttribute();
@@ -258,7 +319,8 @@ void MainWindow::loadProjectFile() {
       else if (strType.compare("prototype") == 0)
          type = EptObject::PROTOTYPE;
       else {
-         // TODO Error!
+         PRINT_STRING("notifications", "\tError: Asset has unidentifiable type - expected 'instance' or 'prototype'. Continuing ...");
+         ++m_numProjLoadErrors;
          continue;
       }
 
@@ -309,10 +371,10 @@ void MainWindow::writeProjectFile() {
       asset.addAttribute("name", obj->name().toLocal8Bit().data());
    }
 
-   ofstream fout(m_projFilePath);
+   ofstream fout(m_rootPath + "/project.ept");
    if (!fout.good()) {
       fout.close();
-      EXCEPTION("Error writing project file '" << m_projFilePath << "'");
+      EXCEPTION("Error writing project file '" << m_rootPath << "/project.ept'");
    }
 
    xml.print(fout);
@@ -324,10 +386,12 @@ void MainWindow::writeProjectFile() {
 // MainWindow::onSave
 //===========================================
 void MainWindow::onSave() {
-   if (m_projFilePath.length() == 0)
+   if (m_rootPath.length() == 0) {
       onSaveAs();
+      return;
+   }
 
-   writeProjectFile();
+   save();
 }
 
 //===========================================
@@ -337,28 +401,42 @@ void MainWindow::onSaveAs() {
    QString path = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
    m_rootPath = string(path.toLocal8Bit().data());
 
-   m_projFilePath = "project.ept";
-   m_assetsPath = "assets";
-
-   writeProjectFile();
+   save();
 }
 
 //===========================================
-// MainWindow::copyAssets
+// MainWindow::save
 //===========================================
-void MainWindow::copyAssets() {
-   createDir(m_rootPath + "/" + m_assetsPath);
+void MainWindow::save() {
+   m_numProjSaveErrors = 0;
+   PRINT_STRING("notifications", "Saving project ...");
 
-   // TODO
+   m_exporter = unique_ptr<Exporter>(new Exporter(m_rootPath + "/assets"));
+   m_exporter->export_(m_wgtMapSettingsTab->mapSettings(), m_objects);
+
+   try {
+      writeProjectFile();
+
+      if (m_numProjSaveErrors == 0) {
+         PRINT_STRING("notifications", "Project save successful");
+      }
+      else {
+         PRINT_STRING("notifications", "Project saved with " << m_numProjSaveErrors << " errors");
+      }
+   }
+   catch (Exception& e) {
+      PRINT_STRING("notifications", "Failed to write project file; " << e.what());
+   }
 }
 
 //===========================================
 // MainWindow::onImport
 //===========================================
 void MainWindow::onImport() {
-   string importPath("./import"); // TODO
+   QString qPath = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   string path(qPath.toLocal8Bit().data());
 
-   m_importer = unique_ptr<Importer>(new Importer(importPath));
+   m_importer = unique_ptr<Importer>(new Importer(path));
    m_importer->import(m_wgtMapSettingsTab->mapSettings(), m_objects);
 
    m_wgtMapSettingsTab->update();
@@ -380,7 +458,10 @@ void MainWindow::onMapSettingsChange() {
 // MainWindow::onExport
 //===========================================
 void MainWindow::onExport() {
-   m_exporter = unique_ptr<Exporter>(new Exporter("./export")); // TODO
+   QString qPath = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   string path(qPath.toLocal8Bit().data());
+
+   m_exporter = unique_ptr<Exporter>(new Exporter(path));
    m_exporter->export_(m_wgtMapSettingsTab->mapSettings(), m_objects);
 }
 
@@ -393,7 +474,7 @@ void MainWindow::onSpnSegmentXChanged(int value) {
 
    int y = m_wgtSpnSegmentY->value();
 
-   m_objects.move(obj->name(), value, y);
+   m_objects.move(obj->id(), value, y);
 }
 
 //===========================================
@@ -405,7 +486,7 @@ void MainWindow::onSpnSegmentYChanged(int value) {
 
    int x = m_wgtSpnSegmentX->value();
 
-   m_objects.move(obj->name(), x, value);
+   m_objects.move(obj->id(), x, value);
 }
 
 //===========================================
@@ -420,7 +501,7 @@ void MainWindow::onChkGlobalChanged(int state) {
          m_wgtSpnSegmentY->setDisabled(true);
          m_wgtBtnInferSegment->setDisabled(true);
 
-         if (obj) m_objects.move(obj->name(), -1, -1);
+         if (obj) m_objects.move(obj->id(), -1, -1);
       }
       break;
       case Qt::Unchecked: {
@@ -431,7 +512,7 @@ void MainWindow::onChkGlobalChanged(int state) {
          int x = m_wgtSpnSegmentX->value();
          int y = m_wgtSpnSegmentY->value();
 
-         if (obj) m_objects.move(obj->name(), x, y);
+         if (obj) m_objects.move(obj->id(), x, y);
       }
       break;
    }
@@ -636,9 +717,11 @@ void MainWindow::updateAssetList_r(QTreeWidgetItem* parent, weak_ptr<EptObject> 
       // Dependency doesn't exist (yet).
       if (!objDep) continue;
 
-      // TODO
       // Object cannot link to itself
-      if (objDep == pObj) continue;
+      if (objDep == pObj) {
+         PRINT_STRING("notifications", "Cyclic dependency detected: asset " << pObj->id() << " links to itself");
+         continue;
+      }
 
       QTreeWidgetItem* item = new QTreeWidgetItem(parent, QStringList(objDep->name()));
       item->setFlags(item->flags() | Qt::ItemIsEditable);

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ASSETFILE>
 <using>
-	<file>./export/soilProto.xml</file>
-	<file>./export/movingPlatformProto.xml</file>
-	<file>./export/stopBlockProto.xml</file>
-	<file>./export/stationaryPlatformProto.xml</file>
+	<file>soilProto.xml</file>
+	<file>movingPlatformProto.xml</file>
+	<file>stopBlockProto.xml</file>
+	<file>playerProto.xml</file>
+	<file>stationaryPlatformProto.xml</file>
 </using>
 <assets>
 <asset assetId="111">
@@ -2019,6 +2020,16 @@
 			</scale>
 		</Entity>
 	</PhysicalEntity>
+</asset>
+
+<asset assetId="99" protoId="10" addToWorld="true">
+	<Player>
+		<PhysicalSprite>
+			<Sprite>
+				<Entity name="player" x="0.0" y="0.0" z="8"/>
+			</Sprite>
+		</PhysicalSprite>
+	</Player>
 </asset>
 
 <asset assetId="98" addToWorld="true">

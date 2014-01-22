@@ -13,13 +13,24 @@ using namespace Dodge;
 // Importer::Importer
 //===========================================
 Importer::Importer(const std::string& path)
-   : m_path(path) {}
+   : m_dataRoot(path) {}
 
 //===========================================
 // Importer::import
 //===========================================
 void Importer::import(MapSettings& settings, ObjectContainer& objects) {
-   readMapFile(settings, objects);
+   PRINT_STRING("importer", "Beginning import (" << m_dataRoot << ") ...");
+
+   m_numErrors = 0;
+
+   try {
+      readMapFile(settings, objects);
+   }
+   catch (XmlException& e) {
+      PRINT_STRING("importer", "\tBad map file; " << e.what() << ". Continuing ...");
+      ++m_numErrors;
+   }
+
    importPrototypes(objects);
    importSegments(settings, objects);
 
@@ -29,6 +40,13 @@ void Importer::import(MapSettings& settings, ObjectContainer& objects) {
 
       obj->computeDependencies();
    }
+
+   if (m_numErrors == 0) {
+      PRINT_STRING("importer", "Import successful");
+   }
+   else {
+      PRINT_STRING("importer", "Import finished with " << m_numErrors << " errors");
+   }
 }
 
 //===========================================
@@ -36,7 +54,7 @@ void Importer::import(MapSettings& settings, ObjectContainer& objects) {
 //===========================================
 void Importer::importPrototypes(ObjectContainer& objects) {
    vector<string> files;
-   filesInDir(m_path, files);
+   filesInDir(m_dataRoot, files);
 
    for (unsigned int i = 0; i < files.size(); ++i) {
       int l = files[i].length();
@@ -44,7 +62,14 @@ void Importer::importPrototypes(ObjectContainer& objects) {
       if (l < 4) continue;
       if (files[i].substr(l - 4, 4).compare(".xml") != 0) continue;
 
-      readAssetFile(objects, m_path + "/" + files[i], EptObject::PROTOTYPE);
+      try {
+         // Put the prototype in segment 0,0 and let the exporter decide whether to move it.
+         readAssetFile(objects, m_dataRoot + "/" + files[i], EptObject::PROTOTYPE, Vec2i(0, 0));
+      }
+      catch (XmlException& e) {
+         PRINT_STRING("importer", "\tBad prototype file; " << e.what() << ". Continuing ...");
+         ++m_numErrors;
+      }
    }
 }
 
@@ -52,7 +77,7 @@ void Importer::importPrototypes(ObjectContainer& objects) {
 // Importer::readMapFile
 //===========================================
 void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
-   string mapFilePath = m_path + "/" + settings.fileName;
+   string mapFilePath = m_dataRoot + "/" + settings.filePath;
 
    shared_ptr<XmlDocument> doc(new XmlDocument);
    doc->parse(mapFilePath);
@@ -84,6 +109,7 @@ void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
 
       shared_ptr<EptObject> ent = shared_ptr<EptObject>(new EptObject(node_, EptObject::INSTANCE));
       objects.insert(ent);
+      objects.move(ent->id(), -1, -1);
 
       node_ = node_.nextSibling();
    }
@@ -92,7 +118,7 @@ void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
 //===========================================
 // Importer::readAssetFile
 //===========================================
-void Importer::readAssetFile(ObjectContainer& objects, const string& path, EptObject::type_t type) {
+void Importer::readAssetFile(ObjectContainer& objects, const string& path, EptObject::type_t type, const Dodge::Vec2i& segment) {
    XmlDocument doc;
    doc.parse(path);
 
@@ -112,6 +138,7 @@ void Importer::readAssetFile(ObjectContainer& objects, const string& path, EptOb
 
       shared_ptr<EptObject> ent(new EptObject(node, type));
       objects.insert(ent);
+      objects.move(ent->id(), segment.x, segment.y);
 
       node = node.nextSibling();
    }
@@ -126,16 +153,14 @@ void Importer::importSegments(const MapSettings& settings, ObjectContainer& obje
    for (int i = 0; i < segs.x; ++i) {
       for (int j = 0; j < segs.y; ++j) {
          stringstream ss;
-         ss << m_path << "/" << settings.segmentsDir << "/" << i << j << ".xml";
+         ss << m_dataRoot << "/" << settings.segmentsPath << "/" << i << j << ".xml";
 
          try {
-            readAssetFile(objects, ss.str(), EptObject::INSTANCE);
+            readAssetFile(objects, ss.str(), EptObject::INSTANCE, Vec2i(i, j));
          }
-         catch (XmlException&) {
-            // TODO
-            throw;
-
-            continue;
+         catch (XmlException& e) {
+            PRINT_STRING("importer", "\tBad segment file; " << e.what() << ". Continuing ...");
+            ++m_numErrors;
          }
       }
    }

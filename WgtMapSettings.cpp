@@ -152,8 +152,8 @@ MapSettings& WgtMapSettings::mapSettings() {
    m_mapSettings.segmentSize.x = m_wgtSpnMapSegmentsSizeW->value();
    m_mapSettings.segmentSize.y = m_wgtSpnMapSegmentsSizeH->value();
 
-   m_mapSettings.segmentsDir = "0"; // TODO
-   m_mapSettings.fileName = "map0.xml"; // TODO
+   m_mapSettings.segmentsPath = "0"; // TODO
+   m_mapSettings.filePath = "map0.xml"; // TODO
 
    return m_mapSettings;
 }

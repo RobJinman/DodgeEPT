@@ -3,6 +3,10 @@
 <using>
 </using>
 <assets>
+<asset assetId="9">
+	<Texture path="data/textures/ss8x8squares128x128g.png"/>
+</asset>
+
 <asset assetId="10" addToWorld="false">
 	<ExtEntity>
 		<Player>

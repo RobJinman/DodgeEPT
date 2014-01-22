@@ -64,10 +64,7 @@ class ObjectContainer {
       inline const wkPtrSet_t& get(EptObject::type_t type) const;
       const wkPtrSet_t& get(int i, int j) const;
 
-      void move(const QString& name, int i, int j);
-//      void changeType(const QString& name, EptObject::type_t type);
-//      void changeName(const QString& from, const QString& to);
-
+      void move(long id, int i, int j);
       void changeType(long id, EptObject::type_t type);
       void changeName(long id, const QString& name);
 

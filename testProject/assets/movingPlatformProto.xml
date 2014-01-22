@@ -3,6 +3,10 @@
 <using>
 </using>
 <assets>
+<asset assetId="332">
+	<Texture path="data/textures/platform1.png"/>
+</asset>
+
 <asset assetId="3927" addToWorld="false">
 	<ExtEntity>
 		<Platform>

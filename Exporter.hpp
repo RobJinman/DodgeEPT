@@ -39,7 +39,8 @@ class Exporter {
 
       void doExport(const MapSettings& settings, const std::vector<file_t>& fileList);
 
-      std::string m_path;
+      std::string m_dataRoot;
+      int m_numErrors;
 };
 
 
