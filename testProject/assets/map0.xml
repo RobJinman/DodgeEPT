@@ -18,8 +18,12 @@
 		<Vec2f x="2.6" y="1.4"/>
 	</segmentSize>
 	<segmentsPath>0</segmentsPath>
+	<customSettings>
+		<bgColour>
+			<Colour r="0.075" g="0.05" b="0.02" a="1.0"/>
+		</bgColour>
+	</customSettings>
 </settings>
-<customSettings/>
 <using>
 	<file>playerProto.xml</file>
 </using>

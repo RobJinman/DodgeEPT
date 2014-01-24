@@ -11,6 +11,7 @@ class QGroupBox;
 class QLabel;
 class QSpinBox;
 class QDoubleSpinBox;
+class QPushButton;
 class EptObject;
 
 class WgtMapSettings : public QWidget {
@@ -26,12 +27,14 @@ class WgtMapSettings : public QWidget {
    private slots:
       void onChange(int);
       void onChange(double);
+      void onBtnCSSelectClick();
 
    signals:
       void changed();
+      void customSettingsSelected();
 
    private:
-      mutable MapSettings m_mapSettings;
+      MapSettings m_mapSettings;
 
       QGroupBox*        m_wgtGrpMapBoundary;
       QLabel*           m_wgtLblMapPosition;
@@ -55,6 +58,8 @@ class WgtMapSettings : public QWidget {
       QSpinBox*         m_wgtSpnMapSegmentsQuantityH;
       QDoubleSpinBox*   m_wgtSpnMapSegmentsSizeW;
       QDoubleSpinBox*   m_wgtSpnMapSegmentsSizeH;
+      QGroupBox*        m_wgtGrpCustomSettings;
+      QPushButton*      m_wgtBtnCSSelect;
 };
 
 

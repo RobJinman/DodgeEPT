@@ -83,7 +83,6 @@ void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
    doc->parse(mapFilePath);
 
    // <settings/>
-   // <customSettings/>
    // <using/>
    // <assets/>
 
@@ -93,9 +92,6 @@ void Importer::readMapFile(MapSettings& settings, ObjectContainer& objects) {
 
    node = node.firstChild();
    settings.loadFromXml(node);
-
-   node = node.nextSibling();
-   XML_NODE_CHECK(node, customSettings);
 
    node = node.nextSibling();
    XML_NODE_CHECK(node, using);

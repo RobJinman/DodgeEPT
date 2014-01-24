@@ -8,6 +8,12 @@ using namespace Dodge;
 
 
 //===========================================
+// MapSettings::MapSettings
+//===========================================
+MapSettings::MapSettings()
+   : customSettings(new XmlDocument) {}
+
+//===========================================
 // MapSettings::loadFromXml
 //===========================================
 void MapSettings::loadFromXml(XmlNode node) {
@@ -29,6 +35,7 @@ void MapSettings::loadFromXml(XmlNode node) {
    //     <Vec2f/>
    //   </segmentSize>
    //   <segmentsPath/>
+   //   <customSettings/>
    // </settings>
 
    XML_NODE_CHECK(node, settings);
@@ -49,6 +56,18 @@ void MapSettings::loadFromXml(XmlNode node) {
    node = node.nextSibling();
    XML_NODE_CHECK(node, segmentsPath);
    segmentsPath = node.getString();
+
+   node = node.nextSibling();
+   XML_NODE_CHECK(node, customSettings);
+
+   customSettings.reset();
+   customSettings = shared_ptr<XmlDocument>(new XmlDocument);
+
+   XmlNode node_ = node.firstChild();
+   while (!node_.isNull()) {
+      customSettings->addNode(node_);
+      node_ = node_.nextSibling();
+   }
 }
 
 //===========================================
@@ -108,6 +127,8 @@ XmlDocument MapSettings::toXml() const {
             ss_vec2f.addAttribute("y", ss.str().data());
       XmlNode segmentsPath = settings.addNode("segmentsPath");
          segmentsPath.setValue(this->segmentsPath);
+      XmlNode customSettings = settings.addNode("customSettings");
+         customSettings.addNode(this->customSettings->firstNode());
 
    return doc;
 }

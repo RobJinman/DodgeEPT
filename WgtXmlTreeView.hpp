@@ -95,7 +95,6 @@ class WgtXmlTreeView : public QWidget {
 
       std::weak_ptr<Dodge::XmlDocument> m_document;
       QTreeWidget* m_wgtTree;
-      bool m_populating;
 };
 
 

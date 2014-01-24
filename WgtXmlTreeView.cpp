@@ -11,8 +11,7 @@ using namespace Dodge;
 //===========================================
 WgtXmlTreeView::WgtXmlTreeView(QWidget* parent)
    : QWidget(parent),
-     m_wgtTree(NULL),
-     m_populating(false) {
+     m_wgtTree(NULL) {
 
    QVBoxLayout* vbox = new QVBoxLayout;
    setLayout(vbox);
@@ -27,8 +26,6 @@ WgtXmlTreeView::WgtXmlTreeView(QWidget* parent)
 // WgtXmlTreeView::itemEdited
 //===========================================
 void WgtXmlTreeView::itemEdited(QTreeWidgetItem* item, int column) {
-   if (m_populating) return;
-
    XmlTreeItem* i = static_cast<XmlTreeItem*>(item);
 
    QString qstr = item->text(column);
@@ -66,36 +63,39 @@ void WgtXmlTreeView::populateXmlTree() {
    auto doc = m_document.lock();
    if (!doc) return;
 
-   m_populating = true;
+   m_wgtTree->blockSignals(true);
 
    XmlNode node = doc->firstNode();
-   if (node.isNull()) return;
+   while (!node.isNull()) {
+      QTreeWidgetItem* item = new XmlTreeItem(m_wgtTree, QStringList(QString(node.name().data())), xmlThing_t(node));
 
-   QTreeWidgetItem* item = new XmlTreeItem(m_wgtTree, QStringList(QString(node.name().data())), xmlThing_t(node));
+      XmlAttribute attr = node.firstAttribute();
+      while (!attr.isNull()) {
+         QStringList list;
+         list << QString(attr.name().data());
+         list << QString(attr.getString().data());
 
-   XmlAttribute attr = node.firstAttribute();
-   while (!attr.isNull()) {
-      QStringList list;
-      list << QString(attr.name().data());
-      list << QString(attr.getString().data());
+         QTreeWidgetItem* attrItem = new XmlTreeItem(item, list, xmlThing_t(attr));
+         attrItem->setFlags(attrItem->flags() | Qt::ItemIsEditable);
+         item->addChild(attrItem);
 
-      QTreeWidgetItem* attrItem = new XmlTreeItem(item, list, xmlThing_t(attr));
-      attrItem->setFlags(attrItem->flags() | Qt::ItemIsEditable);
-      item->addChild(attrItem);
+         attr = attr.nextAttribute();
+      }
 
-      attr = attr.nextAttribute();
+      populateXmlTree_r(item, node);
+
+      m_wgtTree->addTopLevelItem(item);
+
+      node = node.nextSibling();
    }
 
-   populateXmlTree_r(item, node);
-
-   m_wgtTree->addTopLevelItem(item);
    m_wgtTree->setColumnCount(2);
 
    QStringList columns;
    columns << "Object" << "Value";
    m_wgtTree->setHeaderLabels(columns);
 
-   m_populating = false;
+   m_wgtTree->blockSignals(false);
 }
 
 //===========================================

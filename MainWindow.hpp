@@ -58,6 +58,7 @@ class MainWindow : public QMainWindow {
       void onOpen();
       void onSave();
       void onSaveAs();
+      void onCustomSettingsSelected();
 
    private:
       void loadProjectFile();
@@ -71,57 +72,58 @@ class MainWindow : public QMainWindow {
 
       void onNotification();
 
-      std::string                      m_rootPath;
+      std::string                      		m_rootPath;
 
-      std::unique_ptr<Importer>        m_importer;
-      std::unique_ptr<Exporter>        m_exporter;
-      ObjectContainer                  m_objects;
-      std::weak_ptr<EptObject>         m_current;
+      std::unique_ptr<Importer>        		m_importer;
+      std::unique_ptr<Exporter>        		m_exporter;
+      ObjectContainer                  		m_objects;
+      std::weak_ptr<EptObject>         		m_current;
+      bool                             		m_bCustomSettings;
 
-      std::shared_ptr<Notifications>   m_notifications;
-      int                              m_numProjLoadErrors;
-      int                              m_numProjSaveErrors;
+      std::shared_ptr<Notifications>   		m_notifications;
+      int                              		m_numProjLoadErrors;
+      int                              		m_numProjSaveErrors;
 
-      QMenu*                     		m_mnuFile;
-      QAction*                   		m_actOpen;
-      QAction*                   		m_actSave;
-      QAction*                   		m_actSaveAs;
-      QAction*                   		m_actImport;
-      QAction*                   		m_actExport;
-      QAction*                   		m_actQuit;
-      QWidget*                   		m_wgtCentral;
-      QSplitter*                 		m_wgtVSplitter;
-      QWidget*                   		m_wgtTop;
-      QTabWidget*                		m_wgtLeftColumnTabs;
-      QWidget*                   		m_wgtToolsTab;
-      QToolBox*                  		m_wgtTools;
-      QComboBox*                 		m_wgtCboPrototypes;
-      QTabWidget*                		m_wgtCentralColumnTabs;
-      QWidget*                   		m_wgtXmlEditTab;
-      QTextEdit*                 		m_wgtXmlEdit;
-      QPushButton*               		m_wgtXmlApply;
-      QWidget*                   		m_wgtDrawScreenTab;
-      QGraphicsView*             		m_wgtDrawScreen;
-      QTabWidget*                		m_wgtRightColumnTabs;
-      QWidget*                   		m_wgtXmlTreeTab;
-      WgtXmlTreeView*            		m_wgtXmlTree;
-      QCheckBox*                 		m_wgtChkPrototype;
-      QGroupBox*                 		m_wgtGrpSegment;
-      QLabel*                    		m_wgtLblSegmentX;
-      QLabel*                    		m_wgtLblSegmentY;
-      QSpinBox*                  		m_wgtSpnSegmentX;
-      QSpinBox*                  		m_wgtSpnSegmentY;
-      QCheckBox*                 		m_wgtChkGlobal;
-      QPushButton*               		m_wgtBtnInferSegment;
-      QWidget*                   		m_wgtObjectsTab;
-      QTreeWidget*               		m_wgtTreAssets;
-      QGroupBox*                 		m_wgtGrpAssets;
-      QLineEdit*                 		m_wgtTxtNewAsset;
-      QPushButton*               		m_wgtBtnNewAsset;
-      QCheckBox*                 		m_wgtChkNewIsPrototype;
-      WgtMapSettings*            		m_wgtMapSettingsTab;
-      QGroupBox*                 		m_wgtGrpNotifications;
-      QTextEdit*                 		m_wgtTxtNotifications;
+      QMenu*                     				m_mnuFile;
+      QAction*                   				m_actOpen;
+      QAction*                   				m_actSave;
+      QAction*                   				m_actSaveAs;
+      QAction*                   				m_actImport;
+      QAction*                   				m_actExport;
+      QAction*                   				m_actQuit;
+      QWidget*                   				m_wgtCentral;
+      QSplitter*                 				m_wgtVSplitter;
+      QWidget*                   				m_wgtTop;
+      QTabWidget*                				m_wgtLeftColumnTabs;
+      QWidget*                   				m_wgtToolsTab;
+      QToolBox*                  				m_wgtTools;
+      QComboBox*                 				m_wgtCboPrototypes;
+      QTabWidget*                				m_wgtCentralColumnTabs;
+      QWidget*                   				m_wgtXmlEditTab;
+      QTextEdit*                 				m_wgtXmlEdit;
+      QPushButton*               				m_wgtXmlApply;
+      QWidget*                   				m_wgtDrawScreenTab;
+      QGraphicsView*             				m_wgtDrawScreen;
+      QTabWidget*                				m_wgtRightColumnTabs;
+      QWidget*                   				m_wgtXmlTreeTab;
+      WgtXmlTreeView*            				m_wgtXmlTree;
+      QCheckBox*                 				m_wgtChkPrototype;
+      QGroupBox*                 				m_wgtGrpSegment;
+      QLabel*                    				m_wgtLblSegmentX;
+      QLabel*                    				m_wgtLblSegmentY;
+      QSpinBox*                  				m_wgtSpnSegmentX;
+      QSpinBox*                  				m_wgtSpnSegmentY;
+      QCheckBox*                 				m_wgtChkGlobal;
+      QPushButton*               				m_wgtBtnInferSegment;
+      QWidget*                   				m_wgtObjectsTab;
+      QTreeWidget*               				m_wgtTreAssets;
+      QGroupBox*                 				m_wgtGrpAssets;
+      QLineEdit*                 				m_wgtTxtNewAsset;
+      QPushButton*               				m_wgtBtnNewAsset;
+      QCheckBox*                 				m_wgtChkNewIsPrototype;
+      WgtMapSettings*            				m_wgtMapSettingsTab;
+      QGroupBox*                 				m_wgtGrpNotifications;
+      QTextEdit*                 				m_wgtTxtNotifications;
 };
 
 

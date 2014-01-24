@@ -203,7 +203,6 @@ void Exporter::computeLocations(
 void Exporter::exportMapFile(const MapSettings& settings, const file_t& file) {
    XmlDocument xml = settings.toXml();
 
-   XmlNode customSettings = xml.addNode("customSettings");
    XmlNode using_ = xml.addNode("using");
    for (auto i = file.includes.begin(); i != file.includes.end(); ++i) {
       XmlNode file_ = using_.addNode("file");

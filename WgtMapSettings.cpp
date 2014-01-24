@@ -5,6 +5,7 @@
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QVBoxLayout>
+#include <QPushButton>
 #include "WgtMapSettings.hpp"
 #include "EptObject.hpp"
 
@@ -41,10 +42,13 @@ WgtMapSettings::WgtMapSettings(QWidget* parent)
    m_wgtSpnMapSegmentsQuantityH = new QSpinBox(m_wgtGrpMapSegments);
    m_wgtSpnMapSegmentsSizeW = new QDoubleSpinBox(m_wgtGrpMapSegments);
    m_wgtSpnMapSegmentsSizeH = new QDoubleSpinBox(m_wgtGrpMapSegments);
+   m_wgtGrpCustomSettings = new QGroupBox("Custom Settings", this);
+   m_wgtBtnCSSelect = new QPushButton("Select", m_wgtGrpCustomSettings);
 
    QVBoxLayout* layout = new QVBoxLayout;
    layout->addWidget(m_wgtGrpMapBoundary);
    layout->addWidget(m_wgtGrpMapSegments);
+   layout->addWidget(m_wgtGrpCustomSettings);
    setLayout(layout);
 
    m_wgtSpnMapPositionX->setSingleStep(0.1);
@@ -80,6 +84,10 @@ WgtMapSettings::WgtMapSettings(QWidget* parent)
    mapSegmentsLayout->addWidget(m_wgtSpnMapSegmentsSizeH, 1, 4);
    m_wgtGrpMapSegments->setLayout(mapSegmentsLayout);
 
+   QVBoxLayout* csLayout = new QVBoxLayout;
+   csLayout->addWidget(m_wgtBtnCSSelect);
+   m_wgtGrpCustomSettings->setLayout(csLayout);
+
    connect(m_wgtSpnMapPositionX, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
    connect(m_wgtSpnMapPositionY, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
    connect(m_wgtSpnMapSizeW, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
@@ -88,9 +96,17 @@ WgtMapSettings::WgtMapSettings(QWidget* parent)
    connect(m_wgtSpnMapSegmentsQuantityH, SIGNAL(valueChanged(int)), this, SLOT(onChange(int)));
    connect(m_wgtSpnMapSegmentsSizeW, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
    connect(m_wgtSpnMapSegmentsSizeH, SIGNAL(valueChanged(double)), this, SLOT(onChange(double)));
+   connect(m_wgtBtnCSSelect, SIGNAL(released()), this, SLOT(onBtnCSSelectClick()));
 
    m_wgtSpnMapSegmentsQuantityW->setMinimum(1);
    m_wgtSpnMapSegmentsQuantityH->setMinimum(1);
+}
+
+//===========================================
+// WgtMapSettings::onBtnCSSelectClick
+//===========================================
+void WgtMapSettings::onBtnCSSelectClick() {
+   emit customSettingsSelected();
 }
 
 //===========================================

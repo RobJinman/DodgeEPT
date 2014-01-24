@@ -230,7 +230,24 @@ MainWindow::MainWindow(QWidget* parent)
    connect(m_wgtSpnSegmentX, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentXChanged(int)));
    connect(m_wgtSpnSegmentY, SIGNAL(valueChanged(int)), this, SLOT(onSpnSegmentYChanged(int)));
    connect(m_wgtMapSettingsTab, SIGNAL(changed()), this, SLOT(onMapSettingsChange()));
+   connect(m_wgtMapSettingsTab, SIGNAL(customSettingsSelected()), this, SLOT(onCustomSettingsSelected()));
    connect(m_wgtTreAssets, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(onObjectNameChange(QTreeWidgetItem*, int)));
+}
+
+//===========================================
+// MainWindow::onCustomSettingsSelected
+//===========================================
+void MainWindow::onCustomSettingsSelected() {
+   m_bCustomSettings = true;
+
+   const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+   shared_ptr<XmlDocument> xml = settings.customSettings;
+
+   string text;
+   xml->print(text);
+
+   m_wgtXmlTree->update(xml);
+   m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
 }
 
 //===========================================
@@ -247,6 +264,8 @@ void MainWindow::onNotification() {
 //===========================================
 void MainWindow::onOpen() {
    QString qPath = QFileDialog::getOpenFileName(this, "Choose a file to open", "/home", "EPT files (*.ept)");
+   if (qPath.length() == 0) return;
+
    string path(qPath.toLocal8Bit().data());
 
    int i = static_cast<int>(path.length()) - 1;
@@ -324,7 +343,7 @@ void MainWindow::loadProjectFile() {
          continue;
       }
 
-      m_objects.changeType(id, type);
+      try { m_objects.changeType(id, type); } catch (Exception&) {}
 
       attr = attr.nextAttribute();
       XML_ATTR_CHECK(attr, name);
@@ -332,7 +351,7 @@ void MainWindow::loadProjectFile() {
       string strName = attr.getString();
       QString qName(strName.data());
 
-      m_objects.changeName(id, qName);
+      try { m_objects.changeName(id, qName); } catch (Exception&) {}
 
       asset = asset.nextSibling();
    }
@@ -399,6 +418,8 @@ void MainWindow::onSave() {
 //===========================================
 void MainWindow::onSaveAs() {
    QString path = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   if (path.length() == 0) return;
+
    m_rootPath = string(path.toLocal8Bit().data());
 
    save();
@@ -434,6 +455,8 @@ void MainWindow::save() {
 //===========================================
 void MainWindow::onImport() {
    QString qPath = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   if (qPath.length() == 0) return;
+
    string path(qPath.toLocal8Bit().data());
 
    m_importer = unique_ptr<Importer>(new Importer(path));
@@ -459,6 +482,8 @@ void MainWindow::onMapSettingsChange() {
 //===========================================
 void MainWindow::onExport() {
    QString qPath = QFileDialog::getExistingDirectory(this, "Choose a directory", "/home", QFileDialog::ShowDirsOnly);
+   if (qPath.length() == 0) return;
+
    string path(qPath.toLocal8Bit().data());
 
    m_exporter = unique_ptr<Exporter>(new Exporter(path));
@@ -599,6 +624,7 @@ void MainWindow::onObjectNameChange(QTreeWidgetItem* item, int) {
 //===========================================
 void MainWindow::onAssetSelection(QTreeWidgetItem* item, int) {
    m_wgtXmlApply->setDisabled(false);
+   m_bCustomSettings = false;
 
    QString name = item->text(0);
 
@@ -634,18 +660,30 @@ void MainWindow::onAssetSelection(QTreeWidgetItem* item, int) {
 // MainWindow::xmlTreeUpdated
 //===========================================
 void MainWindow::xmlTreeUpdated() {
-   auto obj = m_current.lock();
-   assert(obj);
+   if (m_bCustomSettings) {
+      string text;
 
-   // In case object's dependencies have changed
-   obj->computeDependencies();
+      const MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+      shared_ptr<XmlDocument> xml = settings.customSettings;
 
-   string text;
-   obj->xml().lock()->print(text);
+      xml->print(text);
 
-   m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+      m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+   }
+   else {
+      auto obj = m_current.lock();
+      assert(obj);
 
-   updateAssetList(obj->name());
+      // In case object's dependencies have changed
+      obj->computeDependencies();
+
+      string text;
+      obj->xml().lock()->print(text);
+
+      m_wgtXmlEdit->setPlainText(QString(QByteArray(text.data(), text.length())));
+
+      updateAssetList(obj->name());
+   }
 }
 
 //===========================================
@@ -736,24 +774,43 @@ void MainWindow::updateAssetList_r(QTreeWidgetItem* parent, weak_ptr<EptObject> 
 // MainWindow::btnApplyClick
 //===========================================
 void MainWindow::btnApplyClick() {
-   auto obj = m_current.lock();
-   assert(obj);
+   if (!m_bCustomSettings) {
+      auto obj = m_current.lock();
+      assert(obj);
 
-   QString str = m_wgtXmlEdit->toPlainText();
+      QString str = m_wgtXmlEdit->toPlainText();
 
-   XmlParseResult res;
-   obj->parseXml(str, res);
+      XmlParseResult res;
+      obj->parseXml(str, res);
 
-   if (res.result == XmlParseResult::FAILURE) {
-      alert_std("Error in xml: " + res.msg);
-      return;
+      if (res.result == XmlParseResult::FAILURE) {
+         PRINT_STRING("notifications", "Error parsing XML: " << res.msg);
+         return;
+      }
+
+      auto doc = obj->xml().lock();
+      assert(doc);
+
+      m_wgtXmlTree->update(doc);
+      updateAssetList(obj->name());
    }
+   else {
+      MapSettings& settings = m_wgtMapSettingsTab->mapSettings();
+      shared_ptr<XmlDocument> xml = settings.customSettings;
 
-   auto doc = obj->xml().lock();
-   assert(doc);
+      QString qStr = m_wgtXmlEdit->toPlainText();
 
-   m_wgtXmlTree->update(doc);
-   updateAssetList(obj->name());
+      try {
+         string str(qStr.toLocal8Bit().data());
+         xml->parse(str.data(), str.length());
+      }
+      catch (XmlException& e) {
+         PRINT_STRING("notifications", "Error parsing XML: " << e.what());
+         return;
+      }
+
+      m_wgtXmlTree->update(xml);
+   }
 }
 
 //===========================================
